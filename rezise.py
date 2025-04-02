@@ -43,3 +43,10 @@ def resizeElement(windowName,self,tagList=[],tag=None):
         dpg.set_item_pos("create_box", [(width / 2) - 200, (height / 2)+75])
         dpg.set_item_pos("infoText", [(width / 2) - 200, (height / 2)+175])
         dpg.set_item_pos("warning", [(width)-400, 20])
+        
+    elif windowName == self.fileBox:
+        dpg.set_item_pos("zender_download_fileBox", [width - 100, 10])
+        for tagName in tagList:
+            dpg.set_item_indent(tagName,(width//100)*10)
+        if tag == 'addNewFileWindow':
+            dpg.set_item_pos("addNewFileWindow", [(width / 2) - 275, (height / 2)-200])

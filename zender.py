@@ -18,6 +18,7 @@ class ZenderGui:
         self.historyWindow = "history"
         self.yourBoxWindow = "YourBox"
         self.createBox = "createBox"
+        self.fileBox = "fileBox"
         self.fromWhere = None
         self.history = History()
         self.userId = 'DemoUser000001'
@@ -113,6 +114,8 @@ class ZenderGui:
             dpg.add_static_texture(width, height, data, tag="icon_Addfolde")
             width, height, channels, data = dpg.load_image(os.path.join(self.BASE_DIR,"icon/box.png"))
             dpg.add_static_texture(width, height, data, tag="icon_box")
+            width, height, channels, data = dpg.load_image(os.path.join(self.BASE_DIR,"icon/add-post.png"))
+            dpg.add_static_texture(width, height, data, tag="icon_add-file")
     def main_home(self):
         self.windowTheam()
         self.iconSetUp()
@@ -120,7 +123,10 @@ class ZenderGui:
         self.fontSetUp = self.setUpFont(18)
         self.button1 = self.buttonTheam((157, 104, 75, 255))
         self.button2 = self.buttonTheam((108, 93, 78, 255))
-    
+        from fileBox import FileBox
+        obj = FileBox(zender=self)
+        obj.fileBoxMain()
+        return
         if not dpg.does_item_exist(self.homeWindowName):
             with dpg.window(tag=self.homeWindowName, label="Send your file", pos=(0, 0), no_title_bar=True, no_resize=True, no_move=True):
                 dpg.add_text(f'User Id : {self.userId}',pos=(30,30),tag="userIdZender")
