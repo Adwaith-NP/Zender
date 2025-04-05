@@ -124,7 +124,7 @@ class ZenderGui:
         self.button1 = self.buttonTheam((157, 104, 75, 255))
         self.button2 = self.buttonTheam((108, 93, 78, 255))
         from fileBox import FileBox
-        obj = FileBox(zender=self)
+        obj = FileBox(zender=self,boxId=None,encrypt=None)
         obj.fileBoxMain()
         return
         if not dpg.does_item_exist(self.homeWindowName):

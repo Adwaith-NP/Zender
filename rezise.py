@@ -50,3 +50,8 @@ def resizeElement(windowName,self,tagList=[],tag=None):
             dpg.set_item_indent(tagName,(width//100)*10)
         if tag == 'addNewFileWindow':
             dpg.set_item_pos("addNewFileWindow", [(width / 2) - 275, (height / 2)-200])
+        if tag == 'fileInfoWindow':  
+            dpg.set_item_pos("fileInfoWindow", [(width / 2) - 275, (height / 2)-200])
+            
+            
+            
