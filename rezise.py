@@ -1,11 +1,14 @@
 import dearpygui.dearpygui as dpg
 
 
-def resizeElement(windowName,self,tagList=[],tag=None):
+def resizeElement(windowName,self,tagList=[],tag=None,notification=False):
     width = dpg.get_viewport_width()
     height = dpg.get_viewport_height()
     dpg.set_item_width(windowName, width)
     dpg.set_item_height(windowName, height)
+   
+    if notification:
+        dpg.set_item_pos("notification", [(width / 2)-150, (height / 2)-150])
     
     if windowName == self.homeWindowName:
         dpg.set_item_pos("zender_box", [(width / 2) - 60, (height / 2) - 90])

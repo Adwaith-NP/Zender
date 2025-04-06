@@ -2,44 +2,82 @@ import dearpygui.dearpygui as dpg
 from tkinter import filedialog
 import multiprocessing
 import threading
+import os
+from urllib.parse import urlparse
+import shutil
+from database.dataBase import DataBase
+from datetime import date
 
 class FileBox:
     def __init__(self,zender,boxId,encrypt):
+        self.db = DataBase()
         self.zender = zender
         self.fileNotInSelection = True
         self.childWindowNotShown = True
         self.boxId = boxId
         self.encrypt = encrypt
         self.fileCount = 1
+        self.filePath = None
+        if encrypt:
+            self.fileDir = os.path.join(self.zender.BASE_DIR,"files/encrypted")
+        else:
+            self.fileDir = os.path.join(self.zender.BASE_DIR,"files/non_encrypted")
+    
+    def copyFile(self,filePath,dirPath,fileName,filesize):
+        shutil.copy(filePath,dirPath)
+        self.zender.stopSpinning = True
+        self.clossAddNewFileWindow()
+        today = date.today()
+        self.addItemsInTeble(fileName,filesize,today)
+        self.zender.resize(self.zender.fileBox,self.groupName)
+    def addNonEncryptedFile(self):
+        if self.filePath:
+            filePath = os.path.join(self.filePath)
+            parsed = urlparse(filePath)
+            
+            fileName = os.path.basename(parsed.path)
+            size_bytes = os.path.getsize(filePath)
+            if size_bytes/(1024 * 1024) > 1:
+                filesize = "{:.2f} MB".format(size_bytes / (1024 * 1024))
+            else:
+                filesize = "{:.2f} KB".format(size_bytes / (1024))
+            
+            copyPath = os.path.join(self.zender.BASE_DIR,"files/non_encrypted")
+            filePathInCopyPath = os.path.join(copyPath,fileName)
+            if not os.path.exists(filePathInCopyPath):
+                result = self.db.addFileToBox(fileName,filesize,self.boxId)
+                if result:
+                    self.zender.stopSpinning = False
+                    self.zender.loadingWindow(self.zender.fileBox,"Coping pleas wait",[self.groupName,"addNewFileWindow"])
+                    thread = threading.Thread(target=self.copyFile,args=(filePath,copyPath,fileName,filesize))
+                    thread.start()
+                
     def backToYourBox(self):
-        if self.childWindowNotShown:
+        if self.childWindowNotShown and self.zender.stopSpinning:
             dpg.hide_item(self.zender.fileBox)
             dpg.show_item(self.zender.yourBoxWindow)
             self.zender.resize(self.zender.yourBoxWindow)
-    def childTheam(self,color):
-        with dpg.theme() as child_theme:
-            with dpg.theme_component(dpg.mvChildWindow):
-                dpg.add_theme_color(dpg.mvThemeCol_ChildBg,color)
-                dpg.add_theme_style(dpg.mvStyleVar_ChildRounding, 15)
-        return child_theme
     def open_file_dialog(self,queue):
         file_path = filedialog.askopenfilename()
         queue.put(file_path)
     def select_file(self):
-        self.fileNotInSelection = False
-        queue = multiprocessing.Queue()
-        process = multiprocessing.Process(target=self.open_file_dialog,args=(queue,))
-        process.start()
-        process.join() 
-        result = queue.get()
-        if result:
-            dpg.set_value("filePathText",result)
-        self.fileNotInSelection = True
+        if self.fileNotInSelection:
+            self.fileNotInSelection = False
+            queue = multiprocessing.Queue()
+            process = multiprocessing.Process(target=self.open_file_dialog,args=(queue,))
+            process.start()
+            process.join() 
+            result = queue.get()
+            if result:
+                dpg.set_value("filePathText",result)
+                self.filePath = result
+            self.fileNotInSelection = True
     def select_file_thread(self):
         thread = threading.Thread(target=self.select_file)
         thread.start()
     def clossAddNewFileWindow(self):
-            if self.fileNotInSelection:
+            if self.fileNotInSelection and self.zender.stopSpinning:
+                self.filePath = False
                 self.childWindowNotShown = True
                 dpg.delete_item("addNewFileWindow")
                 self.zender.resize(self.zender.fileBox,self.groupName)
@@ -47,21 +85,25 @@ class FileBox:
         if not dpg.does_item_exist('addNewFileWindow') and self.childWindowNotShown:
             self.childWindowNotShown = False
             with dpg.child_window(tag="addNewFileWindow",width=550,height=400,border=False,parent=self.zender.fileBox) as elderChild:
-                dpg.bind_item_theme(elderChild,self.childTheam((157, 104, 75, 255)))
+                dpg.bind_item_theme(elderChild,self.zender.childTheam((157, 104, 75, 255)))
                 dpg.add_image_button(texture_tag="icon_cross",pos=(480,10),width=50, height=50, frame_padding=0, background_color=(157, 104, 75, 255),callback=self.clossAddNewFileWindow)
                 text = dpg.add_text("Add File",pos=(265,50))
                 dpg.bind_item_font(text,self.zender.fontSetUp)
                 dpg.bind_item_theme(text, self.zender.textColorSetUp((0, 0, 0, 255))) 
                 with dpg.child_window(width=365,height=50,pos=(30,150)) as filePath:
-                    dpg.bind_item_theme(filePath,self.childTheam((117, 117, 117, 255)))
+                    dpg.bind_item_theme(filePath,self.zender.childTheam((117, 117, 117, 255)))
                     dpg.add_text("File Path",pos=(5,15),tag="filePathText")
                 button = dpg.add_button(label="browse",width=100,height=50,pos=(400,150),tag="browseButton",callback=self.select_file_thread)
                 dpg.bind_item_theme(button, self.zender.button2)
                 dpg.bind_item_font(button, self.zender.fontSetUp)
-                add_button = dpg.add_button(label="Add File",width=470,height=50,pos=(30,220))
+                if self.encrypt:
+                    callBackFunction = None
+                else:
+                    callBackFunction = self.addNonEncryptedFile
+                add_button = dpg.add_button(label="Add File",width=470,height=50,pos=(30,220),callback=callBackFunction)
                 dpg.bind_item_theme(add_button, self.zender.button2)
                 dpg.bind_item_font(add_button, self.zender.fontSetUp)
-                info_text = dpg.add_text("info : The added file path is only saved in the database. If the file is deleted from the given location, it is highlighted in the interface and becomes inaccessible",pos=(30,300),wrap=470)
+                info_text = dpg.add_text("info : The selected file has been saved to the directory \"files\"",pos=(50,300))
                 dpg.bind_item_font(info_text, self.zender.fontSetUp)
                 dpg.bind_item_theme(info_text, self.zender.textColorSetUp((0, 0, 0, 255)))
             self.zender.resize(self.zender.fileBox,self.groupName,"addNewFileWindow")
@@ -74,7 +116,7 @@ class FileBox:
         if not dpg.does_item_exist('fileInfoWindow') and self.childWindowNotShown:
             self.childWindowNotShown = False
             with dpg.child_window(tag="fileInfoWindow",width=550,height=400,border=False,parent=self.zender.fileBox) as elderChild:
-                dpg.bind_item_theme(elderChild,self.childTheam((157, 104, 75, 255)))
+                dpg.bind_item_theme(elderChild,self.zender.childTheam((157, 104, 75, 255)))
                 dpg.add_image_button(texture_tag="icon_cross",pos=(480,10),width=50, height=50, frame_padding=0, background_color=(157, 104, 75, 255),callback=self.clossFileInfoWindow)
                 text = dpg.add_text("File Info",pos=(265,50))
                 dpg.bind_item_font(text,self.zender.fontSetUp)
@@ -82,36 +124,32 @@ class FileBox:
                 with dpg.group(pos=(50,150)) as group:
                     dpg.add_text("File name")
                     with dpg.child_window(width=350,height=40,pos=(150,143)) as fileNameWindow:
-                        dpg.bind_item_theme(fileNameWindow,self.childTheam((0, 0, 0, 255)))
+                        dpg.bind_item_theme(fileNameWindow,self.zender.childTheam((0, 0, 0, 255)))
                         text = dpg.add_text(user_data[0],pos=(5,8))
                         dpg.bind_item_font(text,self.zender.fontSetUp)
                         dpg.bind_item_theme(text, self.zender.textColorSetUp((255, 255, 255, 255))) 
                     dpg.add_text("File size",pos=(50,210))
                     with dpg.child_window(width=350,height=40,pos=(150,200)) as fileNameWindow:
-                        dpg.bind_item_theme(fileNameWindow,self.childTheam((0, 0, 0, 255)))
+                        dpg.bind_item_theme(fileNameWindow,self.zender.childTheam((0, 0, 0, 255)))
                         text = dpg.add_text(user_data[1],pos=(5,8))
                         dpg.bind_item_font(text,self.zender.fontSetUp)
                         dpg.bind_item_theme(text, self.zender.textColorSetUp((255, 255, 255, 255))) 
                     dpg.add_text(f"Upload date",pos=(50,267))
                     with dpg.child_window(width=350,height=40,pos=(150,257)) as fileNameWindow:
-                        dpg.bind_item_theme(fileNameWindow,self.childTheam((0, 0, 0, 255)))
+                        dpg.bind_item_theme(fileNameWindow,self.zender.childTheam((0, 0, 0, 255)))
                         text = dpg.add_text(user_data[2],pos=(5,8))
                         dpg.bind_item_font(text,self.zender.fontSetUp)
                         dpg.bind_item_theme(text, self.zender.textColorSetUp((255, 255, 255, 255))) 
                     dpg.bind_item_font(group,self.zender.fontSetUp)
                     dpg.bind_item_theme(group, self.zender.textColorSetUp((0, 0, 0, 255))) 
                 button = dpg.add_button(label="remove",width=100,height=50,pos=(160,330))
-                if self.encrypt:
-                    labelText = "Download"
-                else:
-                    labelText = "Show File"
-                button2 = dpg.add_button(label=labelText,width=100,height=50,pos=(300,330))
+                button2 = dpg.add_button(label="Download",width=100,height=50,pos=(300,330))
                 dpg.bind_item_theme(button, self.zender.button2)
                 dpg.bind_item_font(button,self.zender.fontSetUp)
                 dpg.bind_item_theme(button2, self.zender.buttonTheam((78, 93, 108, 255)))
                 dpg.bind_item_font(button2,self.zender.fontSetUp)
             self.zender.resize(self.zender.fileBox,self.groupName,"fileInfoWindow")
-    def addItemsInTeble(self):
+    def addItemsInTeble(self,name,size,date):
         if self.fileCount > 2:
             self.fileCount = 0
 
@@ -119,8 +157,8 @@ class FileBox:
                 self.tableInstance = table
         with dpg.group(parent=self.tableInstance) as fileGroup:
                                 self.groupName.append(fileGroup)
-                                dpg.add_image_button(texture_tag="icon_folder", width=100, height=100, frame_padding=0, background_color=(203, 184, 116, 255),callback=self.fileInfo,user_data=["file.exe","1GB / 1024MB","01/02/2003"])
-                                text = dpg.add_text("new File", wrap=100)
+                                dpg.add_image_button(texture_tag="icon_folder", width=100, height=100, frame_padding=0, background_color=(203, 184, 116, 255),callback=self.fileInfo,user_data=[name,size,date])
+                                text = dpg.add_text(name, wrap=100)
                                 dpg.bind_item_font(text,self.zender.fontSetUp)
                                 dpg.bind_item_theme(text, self.zender.textColorSetUp((0, 0, 0, 255))) 
                         
@@ -140,8 +178,13 @@ class FileBox:
                     with dpg.group() as fileGroup:
                                     self.groupName.append(fileGroup)
                                     dpg.add_image_button(texture_tag="icon_add-file", width=100, height=100, frame_padding=0, background_color=(203, 184, 116, 255),callback=self.addNewFile)
-                for i in range(10):
-                    self.addItemsInTeble()
+
+                filesInDb = self.db.listAllFileByBoxId(self.boxId)
+                for file in filesInDb:
+                    filePath = os.path.join(self.fileDir,file[1])
+                    if os.path.exists(filePath):
+                        self.addItemsInTeble(file[1],file[2],file[3][:10])
+                        
         self.zender.resize(self.zender.fileBox,self.groupName)
     def fileBoxMain(self):
         if not dpg.does_item_exist(self.zender.fileBox):

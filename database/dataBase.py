@@ -27,8 +27,28 @@ class DataBase:
                 return rows
         except:
             pass
-        
+    
+    def addFileToBox(self,fileName,fileSize,BoxId):
+        try:
+            with sqlite3.connect(self.database) as conn:
+                cursor = conn.cursor()
+                cursor.execute("INSERT INTO file_info (file_url, file_size, box_id) VALUES (?, ?, ?)",
+                            (fileName, fileSize, BoxId))
+                conn.commit()
+            return True
+        except:
+            return False
+    def listAllFileByBoxId(self,boxId):
+        try:
+            with sqlite3.connect(self.database) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM file_info WHERE box_id = ?",
+                            (boxId,))
+                rows = cursor.fetchall()
+            return rows
+        except KeyError as e:
+            return False
 obj = DataBase()
-obj.return_data_in_DB()
+obj.listAllFileByBoxId(1)
         
         
