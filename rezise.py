@@ -8,7 +8,7 @@ def resizeElement(windowName,self,tagList=[],tag=None,notification=False):
     dpg.set_item_height(windowName, height)
    
     if notification:
-        dpg.set_item_pos("notification", [(width / 2)-150, (height / 2)-150])
+        dpg.set_item_pos("notification"+notification[0], [(width / 2)-150, (height / 2)-150])
     
     if windowName == self.homeWindowName:
         dpg.set_item_pos("zender_box", [(width / 2) - 60, (height / 2) - 90])
@@ -48,6 +48,11 @@ def resizeElement(windowName,self,tagList=[],tag=None,notification=False):
         dpg.set_item_pos("warning", [(width)-400, 20])
         
     elif windowName == self.fileBox:
+        fontzise = 28/13
+        text_width, _ = dpg.get_text_size("boxName")
+        text_width = text_width * fontzise
+        center_x = (width - text_width) / 2
+        dpg.set_item_pos("boxName", [center_x , 30])
         dpg.set_item_pos("zender_download_fileBox", [width - 100, 10])
         for tagName in tagList:
             dpg.set_item_indent(tagName,(width//100)*10)
@@ -55,6 +60,8 @@ def resizeElement(windowName,self,tagList=[],tag=None,notification=False):
             dpg.set_item_pos("addNewFileWindow", [(width / 2) - 275, (height / 2)-200])
         if tag == 'fileInfoWindow':  
             dpg.set_item_pos("fileInfoWindow", [(width / 2) - 275, (height / 2)-200])
+        if tag == "passwordRequest":
+            dpg.set_item_pos("passwordRequest", [(width / 2) - 275, (height / 2)-200])
             
             
             

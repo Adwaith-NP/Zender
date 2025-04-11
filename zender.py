@@ -33,43 +33,48 @@ class ZenderGui:
                 dpg.add_theme_style(dpg.mvStyleVar_ChildRounding, 15)
         return child_theme
     
-    def loadingWindow(self, parentWindow, text , extra = None):
+    def loadingWindow(self, parentWindow, text , extra = None,nameSpace = "LD"):
         path = os.path.join(self.BASE_DIR, "icon/loading.png")
         original_image = Image.open(path).convert("RGBA")
         width, height = original_image.size
         rotation = 0
+        
+        icon_tag = "loading_icon"+nameSpace
+        notofocation_tag = "notification"+nameSpace
+        loading_tag = "loading"+nameSpace
+
 
         def loadImage(rotation_angle):
             rotated = original_image.rotate(rotation_angle, expand=False).convert("RGBA")
             img_data = rotated.tobytes()
-            if dpg.does_item_exist("loading_icon"):
-                dpg.delete_item("loading_icon")
+            if dpg.does_item_exist(icon_tag):
+                dpg.delete_item(icon_tag)
             with dpg.texture_registry():
-                dpg.add_static_texture(width, height, img_data, tag="loading_icon")
+                dpg.add_static_texture(width, height, img_data, tag=icon_tag)
 
         def spin_loader():
             nonlocal rotation
             if self.stopSpinning:
-                dpg.delete_item("notification")
+                dpg.delete_item(notofocation_tag)
                 return  # Exit if window was closed
         
-            if dpg.does_item_exist("loading"):
-                dpg.delete_item("loading")
+            if dpg.does_item_exist(loading_tag):
+                dpg.delete_item(loading_tag)
             loadImage(rotation)
                 
-            dpg.add_image("loading_icon", tag="loading", width=80, height=80, pos=(120, 110),parent="notification")
+            dpg.add_image(icon_tag, tag=loading_tag, width=80, height=80, pos=(120, 110),parent=notofocation_tag)
             rotation = (rotation + 10) % 360
             time.sleep(0.05)
             dpg.set_frame_callback(dpg.get_frame_count() + 1, spin_loader)  # schedule next frame
 
-        with dpg.child_window(width=300, height=300, border=False, parent=parentWindow, tag="notification") as elderChild:
+        with dpg.child_window(width=300, height=300, border=False, parent=parentWindow, tag=notofocation_tag) as elderChild:
             dpg.bind_item_theme(elderChild, self.childTheam((78, 93, 108, 255)))
             text_width, _ = dpg.get_text_size(text)
             center_x = (300 - text_width) / 2
-            text_item = dpg.add_text(text, pos=(center_x, 10),tag="loadingText")
+            text_item = dpg.add_text(text, pos=(center_x, 10),tag="loadingText"+nameSpace)
             dpg.bind_item_font(text_item, self.fontSetUp)
             dpg.bind_item_theme(text_item, self.textColorSetUp((0, 0, 0, 255)))
-            self.resize(self.fileBox,extra[0], extra[1], notification = True)
+            self.resize(self.fileBox,extra[0], extra[1], notification = [nameSpace])
         spin_loader()
         
     def resize(self,name,tagList=[],tag=None,notification=False):
@@ -120,10 +125,10 @@ class ZenderGui:
             dpg.hide_item(self.homeWindowName)
             obj = YourBox()
             obj.yourBoxMain(zender=self)
-    def setUpFont(self,size):
+    def setUpFont(self):
         with dpg.font_registry():
-            large_font = dpg.add_font(os.path.join(self.BASE_DIR,"Arial.ttf"), size)
-        return large_font
+            self.fontSetUp = dpg.add_font(os.path.join(self.BASE_DIR,"Arial.ttf"), 18)
+            self.large_font_max = dpg.add_font(os.path.join(self.BASE_DIR,"Arial.ttf"), 28)
     def windowTheam(self):
         with dpg.theme() as window_theme:
             self.WindowTheam = window_theme
@@ -163,17 +168,14 @@ class ZenderGui:
             dpg.add_static_texture(width, height, data, tag="icon_box")
             width, height, channels, data = dpg.load_image(os.path.join(self.BASE_DIR,"icon/add-post.png"))
             dpg.add_static_texture(width, height, data, tag="icon_add-file")
+    
     def main_home(self):
         self.windowTheam()
         self.iconSetUp()
         self.inputDecine()
-        self.fontSetUp = self.setUpFont(18)
+        self.setUpFont()
         self.button1 = self.buttonTheam((157, 104, 75, 255))
         self.button2 = self.buttonTheam((108, 93, 78, 255))
-        from fileBox import FileBox
-        obj = FileBox(zender=self,boxId=1,encrypt=False)
-        obj.fileBoxMain()
-        return
         if not dpg.does_item_exist(self.homeWindowName):
             with dpg.window(tag=self.homeWindowName, label="Send your file", pos=(0, 0), no_title_bar=True, no_resize=True, no_move=True):
                 dpg.add_text(f'User Id : {self.userId}',pos=(30,30),tag="userIdZender")

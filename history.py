@@ -2,19 +2,19 @@ import dearpygui.dearpygui as dpg
 from accessFile import AccessFile
 class History:
     def goBack(self):
+        def goTo(toWhere):
+            dpg.hide_item(self.zender.historyWindow)
+            dpg.show_item(toWhere)
+            self.zender.resize(toWhere)
         if self.zender.fromWhere == "accessFile":
             dpg.delete_item(self.zender.accessFileWindowName)
             dpg.hide_item(self.zender.loginToBoxWindowName)
             self.AccessFileObj = AccessFile()
             self.AccessFileObj.accessFileMain(zender=self.zender)
         elif self.zender.fromWhere == "zender_home":
-            dpg.hide_item(self.zender.historyWindow)
-            dpg.show_item(self.zender.fromWhere)
-            self.zender.resize(self.zender.fromWhere)
-        elif self.zender.fromWhere == "YourBox":
-            dpg.hide_item(self.zender.historyWindow)
-            dpg.show_item(self.zender.fromWhere)
-            self.zender.resize(self.zender.fromWhere)
+            goTo(self.zender.fromWhere)
+        elif self.zender.fromWhere == "YourBox" or self.zender.fromWhere == "fileBox":
+            goTo("YourBox")
     def windowTheam(self):
         with dpg.theme() as window_theme:
             with dpg.theme_component(dpg.mvAll):

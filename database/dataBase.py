@@ -34,8 +34,9 @@ class DataBase:
                 cursor = conn.cursor()
                 cursor.execute("INSERT INTO file_info (file_url, file_size, box_id) VALUES (?, ?, ?)",
                             (fileName, fileSize, BoxId))
+                inserted_id = cursor.lastrowid
                 conn.commit()
-            return True
+            return inserted_id
         except:
             return False
     def listAllFileByBoxId(self,boxId):
@@ -48,7 +49,18 @@ class DataBase:
             return rows
         except KeyError as e:
             return False
+    def deliteFile(self,fileId):
+        try:
+            with sqlite3.connect(self.database) as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM file_info WHERE id = ?",
+                            (fileId,))
+                conn.commit()
+            return True
+        except:
+            return False
 obj = DataBase()
-obj.listAllFileByBoxId(1)
+print(obj.listAllFileByBoxId(1))
+
         
         
