@@ -10,6 +10,7 @@ from datetime import date
 from pathlib import Path
 import bcrypt
 import time
+from cryptographyFiles.Cryptography import Cryptography
 
 class FileBox:
     def __init__(self,zender,boxId,encrypt,password,boxName):
@@ -33,18 +34,20 @@ class FileBox:
         home_dir = Path.home()
         downloads_dir = home_dir / 'Downloads'
         file_path = os.path.join(self.fileDir,fileName)
-        self.zender.loadingWindow(self.zender.fileBox,"Moving to Dwonload Directory",[self.groupName,"fileInfoWindow"],nameSpace="UN01")
-        shutil.copy(file_path,downloads_dir)
+        if self.encrypt:
+            self.zender.loadingWindow(self.zender.fileBox,"Decrypting and moving to Dwonload Directory",[self.groupName,"fileInfoWindow"],nameSpace="UN01")
+            decrypt = Cryptography()
+            decrypt.decrypt_file(file_path,fileName,self.realPassword)
+        else:
+            self.zender.loadingWindow(self.zender.fileBox,"Moving to Dwonload Directory",[self.groupName,"fileInfoWindow"],nameSpace="UN01")
+            shutil.copy(file_path,downloads_dir)
         self.zender.stopSpinning = True
         self.clossFileInfoWindow()
     
     def moveToDownload(self,sender,app_data,fileName):
-        if self.encrypt:
-            pass
-        else:
-            self.zender.stopSpinning = False
-            thread = threading.Thread(target=self.moveToDownloadThread,args=(fileName,))
-            thread.start()
+        self.zender.stopSpinning = False
+        thread = threading.Thread(target=self.moveToDownloadThread,args=(fileName,))
+        thread.start()
     
     def copyFile(self,filePath,dirPath,fileName,filesize,fileId):
         shutil.copy(filePath,dirPath)
@@ -79,8 +82,16 @@ class FileBox:
             if tup[1] == fileName:
                 return True
         return False
-    
-    def addNonEncryptedFile(self):
+    def encrypting(self,filePath,fileName,fileId):
+        enc = Cryptography(path=self.fileDir)
+        filesize = enc.encrypt_file(filePath,fileName,self.realPassword)
+        self.zender.stopSpinning = True
+        self.clossAddNewFileWindow()
+        today = date.today()
+        self.addItemsInTeble(fileName,filesize,today,fileId)
+        self.zender.resize(self.zender.fileBox,self.groupName)
+        
+    def addFile(self):
         if self.filePath:
             filePath = os.path.join(self.filePath)
             parsed = urlparse(filePath)
@@ -91,17 +102,22 @@ class FileBox:
                 filesize = "{:.2f} MB".format(size_bytes / (1024 * 1024))
             else:
                 filesize = "{:.2f} KB".format(size_bytes / (1024))
-            
-            copyPath = os.path.join(self.zender.BASE_DIR,"files/non_encrypted")
-            filePathInCopyPath = os.path.join(copyPath,fileName)
+            filePathInCopyPath = os.path.join(self.fileDir,fileName)
             
             if not os.path.exists(filePathInCopyPath):
                 result = self.db.addFileToBox(fileName,filesize,self.boxId)
                 if result:
-                    self.zender.stopSpinning = False
-                    self.zender.loadingWindow(self.zender.fileBox,"Coping pleas wait",[self.groupName,"addNewFileWindow"])
-                    thread = threading.Thread(target=self.copyFile,args=(filePath,copyPath,fileName,filesize,result))
-                    thread.start()
+                    if not self.encrypt:
+                        self.zender.stopSpinning = False
+                        self.zender.loadingWindow(self.zender.fileBox,"Coping pleas wait",[self.groupName,"addNewFileWindow"])
+                        thread = threading.Thread(target=self.copyFile,args=(filePath,self.fileDir,fileName,filesize,result))
+                        thread.start()
+                    else:
+                        self.zender.stopSpinning = False
+                        self.zender.loadingWindow(self.zender.fileBox,"Encrypting the file pleas wait",[self.groupName,"addNewFileWindow"])
+                        thread = threading.Thread(target=self.encrypting,args=(filePath,fileName,result))
+                        thread.start()
+                
             else:
                 if not self.isFileInDb(fileName):
                     result = self.db.addFileToBox(fileName,filesize,self.boxId)
@@ -109,6 +125,8 @@ class FileBox:
                     today = date.today()
                     self.addItemsInTeble(fileName,filesize,today,result)
                     self.zender.resize(self.zender.fileBox,self.groupName)
+                else:
+                    self.notofication('File alrady exists')
                 
     def backToYourBox(self):
         if self.childWindowNotShown and self.zender.stopSpinning:
@@ -155,11 +173,7 @@ class FileBox:
                     button = dpg.add_button(label="browse",width=100,height=50,pos=(400,150),tag="browseButton",callback=self.select_file_thread)
                     dpg.bind_item_theme(button, self.zender.button2)
                     dpg.bind_item_font(button, self.zender.fontSetUp)
-                    if self.encrypt:
-                        callBackFunction = None
-                    else:
-                        callBackFunction = self.addNonEncryptedFile
-                    add_button = dpg.add_button(label="Add File",width=470,height=50,pos=(30,220),callback=callBackFunction)
+                    add_button = dpg.add_button(label="Add File",width=470,height=50,pos=(30,220),callback=self.addFile)
                     dpg.bind_item_theme(add_button, self.zender.button2)
                     dpg.bind_item_font(add_button, self.zender.fontSetUp)
                     info_text = dpg.add_text("info : The selected file has been saved to the directory \"files\"",pos=(50,300))

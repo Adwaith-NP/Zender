@@ -59,8 +59,8 @@ class DataBase:
             return True
         except:
             return False
-obj = DataBase()
-print(obj.listAllFileByBoxId(1))
+# obj = DataBase()
+# print(obj.listAllFileByBoxId(1))
 
         
         
