@@ -52,7 +52,7 @@ def load_keys(private_key_file="private_key.pem", public_key_file="public_key.pe
     with open(private_key_file, "rb") as priv_file:
         private_key = serialization.load_pem_private_key(
             priv_file.read(),
-            password=None  # If you encrypt the private key, provide the password here
+            password=None
         )
 
     # Load public key
