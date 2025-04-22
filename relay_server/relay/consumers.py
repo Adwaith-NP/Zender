@@ -5,7 +5,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 active_connections = {}
 request_active_connections = {}
 
-class ShearePublicKey(AsyncWebsocketConsumer):
+class subTask(AsyncWebsocketConsumer):
     async def connect(self):
         self.userId = self.scope["url_route"]["kwargs"]['userId']
         await self.accept()
@@ -13,10 +13,15 @@ class ShearePublicKey(AsyncWebsocketConsumer):
     async def receive(self, text_data=None, bytes_data=None):
         if text_data:
             jsonData = json.loads(text_data)
-            if jsonData['publicKey'] and self.userId in request_active_connections:
+            if 'response' in jsonData and self.userId in request_active_connections:
                 reciver = request_active_connections[self.userId]
-                await reciver.send(text_data)
-            
+                if jsonData['response'] == 'sendingPublicKey':
+                    await reciver.send(text_data)
+                elif jsonData['response'] == 'sharingFileInfo':
+                    await reciver.send(text_data)
+            else:
+                await self.send(json.dumps({'status':404}))
+                
                 
                 
 
@@ -40,20 +45,29 @@ class OneTimeRequest(AsyncWebsocketConsumer):
     async def receive(self, text_data=None, bytes_data=None):
         if text_data:
             jsonData = json.loads(text_data)
+            request = None
             if 'request' in jsonData:
                 if jsonData['request'] == 'givePublicKey':
                     senderUserId = jsonData['userId']
                     request = json.dumps({
                         'request':'givePublicKey',
-                        'userId' : senderUserId,
                         'reciverId' : self.userId,
                     })
-                    if senderUserId in active_connections:
+                elif jsonData['request'] == 'authentication':
+                    senderUserId = jsonData['userId']
+                    request = json.dumps({
+                        'request':'authentication',
+                        'data' : jsonData['data'],
+                        'userPublicKey' : jsonData['userPublicKey'],
+                        'reciverId' : self.userId,
+                    })
+                if senderUserId in active_connections and request:
                         request_active_connections[self.userId] = self
                         await active_connections[senderUserId].send(request)
-                    else:
-                        message = json.dumps({'status':404})
-                        await self.send(message)
+                else:
+                    message = json.dumps({'status':404})
+                    await self.send(message)
+                    
             else:
                 message = json.dumps({'status':404})
                 await self.send(message)

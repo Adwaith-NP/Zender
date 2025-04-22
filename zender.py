@@ -8,12 +8,14 @@ import pyperclip #dependecy
 import asyncio
 from PIL import Image #imported pip install pillow
 import time
+from accessRelayServer.dataTransfer import RequestHandling,Request
+import threading
+import time
 
 
 class ZenderGui:
-    def __init__(self):
+    def __init__(self,userId):
         self.BASE_DIR = Path(__file__).resolve().parent
-        
         self.homeWindowName = "zender_home"
         self.loginToBoxWindowName = "loginToBox"
         self.accessFileWindowName = "accessFile"
@@ -23,9 +25,38 @@ class ZenderGui:
         self.fileBox = "fileBox"
         self.fromWhere = None
         self.history = History()
-        self.userId = 'DemoUser000001'
+        self.userId = userId
         self.stopSpinning = True
-    
+        self.parentWindow = self.homeWindowName
+    def connectToRelayServer(self):
+        url = f"ws://127.0.0.1:8000/ws/relay/{self.userId}/"
+        self.connection = RequestHandling(self.userId,url,self.BASE_DIR)
+        self.connection.startScaningThread()
+        
+    def requestForLogin(self,senderId,boxId,password,Queue):
+        request = Request(self.userId,self.BASE_DIR,Queue)
+        request.loginRequestThread(senderId,boxId,password)
+        
+    def noNetwork(self):
+        #OnlineOrOffline
+        onlineTxstSetUp = False
+        offLineTextSetUp = False
+        while True:
+            time.sleep(4)
+            connection = self.connection.relayConnection
+            if not connection:
+                self.connectToRelayServer()
+                if not offLineTextSetUp:
+                    dpg.set_value('OnlineOrOffline','Offline')
+                    dpg.bind_item_theme('OnlineOrOffline', self.textColorSetUp((255, 0, 0, 255))) 
+                    offLineTextSetUp = True
+                    onlineTxstSetUp = False
+            elif not onlineTxstSetUp:
+                dpg.set_value('OnlineOrOffline','Online')
+                dpg.bind_item_theme('OnlineOrOffline', self.textColorSetUp((100, 250, 100, 200))) 
+                onlineTxstSetUp = True
+                offLineTextSetUp = False
+            
     def childTheam(self,color):
         with dpg.theme() as child_theme:
             with dpg.theme_component(dpg.mvChildWindow):
@@ -174,11 +205,15 @@ class ZenderGui:
         self.iconSetUp()
         self.inputDecine()
         self.setUpFont()
+        self.connectToRelayServer()
+        threading.Thread(target=self.noNetwork, daemon=True).start()
         self.button1 = self.buttonTheam((157, 104, 75, 255))
         self.button2 = self.buttonTheam((108, 93, 78, 255))
         if not dpg.does_item_exist(self.homeWindowName):
             with dpg.window(tag=self.homeWindowName, label="Send your file", pos=(0, 0), no_title_bar=True, no_resize=True, no_move=True):
                 dpg.add_text(f'User Id : {self.userId}',pos=(30,30),tag="userIdZender")
+                dpg.add_text('Status : ',pos=(30,60),tag='status')
+                dpg.add_text('Connecting...',tag='OnlineOrOffline',pos=(100,60))
                 dpg.add_button(label="Access Box", tag="zender_box", pos=(0, 0), width=140, height=60,callback = self.moveToBox)
                 dpg.add_button(label="Your Box", tag="zender_your_box", pos=(0, 0), width=140, height=60,callback=self.moveToYourBox)
                 dpg.add_image_button(texture_tag="icon_download",tag="zender_download", width=50, height=50, frame_padding=0, background_color=(203, 184, 116, 255),callback=self.moveHistoryBox)
@@ -191,6 +226,10 @@ class ZenderGui:
                 dpg.bind_item_font("zender_your_box", self.fontSetUp)
                 dpg.bind_item_font("userIdZender", self.fontSetUp)
                 dpg.bind_item_theme('userIdZender', self.textColorSetUp((0, 0, 0, 255))) 
+                dpg.bind_item_font("status", self.fontSetUp)
+                dpg.bind_item_theme('status', self.textColorSetUp((0, 0, 0, 255))) 
+                dpg.bind_item_font("OnlineOrOffline", self.fontSetUp)
+                dpg.bind_item_theme('OnlineOrOffline', self.textColorSetUp((0, 0, 0, 255))) 
                 dpg.add_text("info", tag="info_txt_zender", show=False)
                 dpg.bind_theme(self.WindowTheam)
         self.resize(self.homeWindowName)
@@ -204,6 +243,10 @@ class ZenderGui:
         dpg.start_dearpygui()
         dpg.destroy_context()
 
+import sys
+if len(sys.argv) > 1:
+    value = sys.argv[1]
+
 if __name__ == "__main__":
-    zender = ZenderGui()
+    zender = ZenderGui(value)
     zender.run()

@@ -12,6 +12,11 @@ import bcrypt
 import time
 from cryptographyFiles.Cryptography import Cryptography
 
+class FileSelection:
+    def open_file_dialog(self,queue):
+        file_path = filedialog.askopenfilename()
+        queue.put(file_path)
+
 class FileBox:
     def __init__(self,zender,boxId,encrypt,password,boxName):
         self.db = DataBase()
@@ -69,12 +74,15 @@ class FileBox:
     
     def removeFile(self,sender, app_data,fileName):
         filePath = os.path.join(self.fileDir,fileName[0])
+        count = self.db.fileCount(fileName[0])
         if os.path.exists(filePath):
-            os.remove(filePath)
+            if count is not None and count == 1:
+                os.remove(filePath)
             dpg.delete_item(fileName[1])
             self.groupName.remove(fileName[1])
             self.db.deliteFile(fileName[2])
             self.clossFileInfoWindow()
+            self.db.decrementCount(fileName[0])
     
     def isFileInDb(self,fileName):
         fileList = self.db.listAllFileByBoxId(self.boxId)
@@ -133,14 +141,12 @@ class FileBox:
             dpg.hide_item(self.zender.fileBox)
             dpg.show_item(self.zender.yourBoxWindow)
             self.zender.resize(self.zender.yourBoxWindow)
-    def open_file_dialog(self,queue):
-        file_path = filedialog.askopenfilename()
-        queue.put(file_path)
     def select_file(self):
         if self.fileNotInSelection:
             self.fileNotInSelection = False
+            selecttion = FileSelection()
             queue = multiprocessing.Queue()
-            process = multiprocessing.Process(target=self.open_file_dialog,args=(queue,))
+            process = multiprocessing.Process(target=selecttion.open_file_dialog,args=(queue,))
             process.start()
             process.join() 
             result = queue.get()
@@ -149,7 +155,7 @@ class FileBox:
                 self.filePath = result
             self.fileNotInSelection = True
     def select_file_thread(self):
-        thread = threading.Thread(target=self.select_file)
+        thread = threading.Thread(target=self.select_file,daemon=True)
         thread.start()
     def clossAddNewFileWindow(self):
             if self.fileNotInSelection and self.zender.stopSpinning:

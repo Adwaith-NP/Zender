@@ -42,7 +42,7 @@ class YourBox:
                 dpg.add_theme_color(dpg.mvThemeCol_ChildBg,color)
                 dpg.add_theme_style(dpg.mvStyleVar_ChildRounding, 15)
         return child_theme
-    def createGroup(self,name,enc,boxId,password):
+    def createGroup(self,name,enc,boxId,password,new = False):
         self.count = self.count + 1
         self.boxData[self.count] = [boxId,name,enc,password]
         dpg.add_child_window(width=300, height=4, border=False,parent="boxChildWindow")
@@ -64,6 +64,10 @@ class YourBox:
                     with dpg.child_window(width=section_width, height=45, border=True,tag=f"childBoxSelection{self.count}ch2"):
                         dpg.add_spacer(height=1)
                         dpg.add_image(texture_tag="icon_unlock", width=25, height=25,pos=(65,10))
+            if new:
+                with dpg.handler_registry():
+                    dpg.add_mouse_click_handler(callback=self.savedFunction(f"childBoxSelection{self.count}",self.count))
+                 
     def listBox(self):
         db = DataBase()
         box = db.return_data_in_DB()
@@ -97,6 +101,7 @@ class YourBox:
                         if dpg.is_item_hovered(tag) or dpg.is_item_hovered(tag+"ch1") or dpg.is_item_hovered(tag+"ch2"):
                             self.toBox(self.boxData[count])
                 return callback
+        self.savedFunction = make_window_click_callback
 
         with dpg.handler_registry():
             dpg.add_mouse_click_handler(callback=make_window_click_callback("ChildChildWindow",None))

@@ -55,9 +55,7 @@ class History:
                 with dpg.group(tag='icon_text'):
                     dpg.add_image(texture_tag="icon_history",tag="history_icon", width=50, height=50)
                     dpg.add_text("History",tag="history_text")
-                    
                     self.addHistoryList()
-                
                 dpg.bind_item_font('history_text',self.zender.fontSetUp)
                 dpg.bind_item_theme("history_text",self.zender.textColorSetUp((0, 0, 0, 255)))
                 dpg.add_image_button(texture_tag="icon_go_back",tag="back_icon_history", width=50, height=50, frame_padding=0, background_color=(203, 184, 116, 255),callback=self.goBack)

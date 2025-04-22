@@ -36,7 +36,7 @@ class CreateBox:
         if not result:
             self.notofication("Error: Box name already exists!")
         else:
-            self.add_box(boxId,enc)
+            self.add_box(name = boxId,enc = enc ,password = password , boxId = result,new = True)
             self.backToBoxWindow()
     def run_async_task(self, coroutine):
         try:
