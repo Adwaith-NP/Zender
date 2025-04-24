@@ -80,7 +80,8 @@ class FileBox:
                 os.remove(filePath)
             dpg.delete_item(fileName[1])
             self.groupName.remove(fileName[1])
-            self.db.deliteFile(fileName[2])
+            result = self.db.deliteFile(fileName[2])
+            print(result,fileName[2])
             self.clossFileInfoWindow()
             self.db.decrementCount(fileName[0])
     
@@ -191,7 +192,7 @@ class FileBox:
                 self.childWindowNotShown = True
                 dpg.delete_item("fileInfoWindow")
                 self.zender.resize(self.zender.fileBox,self.groupName)
-    def fileInfo(self,sender, app_data, user_data,fileId):
+    def fileInfo(self,sender, app_data, user_data):
         if not self.encrypt or (self.realPassword and self.encrypt):
             if not dpg.does_item_exist('fileInfoWindow') and self.childWindowNotShown:
                 self.childWindowNotShown = False
@@ -222,7 +223,7 @@ class FileBox:
                             dpg.bind_item_theme(text, self.zender.textColorSetUp((255, 255, 255, 255))) 
                         dpg.bind_item_font(group,self.zender.fontSetUp)
                         dpg.bind_item_theme(group, self.zender.textColorSetUp((0, 0, 0, 255))) 
-                    button = dpg.add_button(label="remove",width=100,height=50,pos=(160,330),callback=self.removeFile,user_data = (user_data[0],user_data[3],fileId))
+                    button = dpg.add_button(label="remove",width=100,height=50,pos=(160,330),callback=self.removeFile,user_data = (user_data[0],user_data[3],user_data[4]))
                     button2 = dpg.add_button(label="Download",width=100,height=50,pos=(300,330),callback=self.moveToDownload,user_data=user_data[0])
                     dpg.bind_item_theme(button, self.zender.button2)
                     dpg.bind_item_font(button,self.zender.fontSetUp)

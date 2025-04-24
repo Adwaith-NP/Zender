@@ -100,6 +100,8 @@ class AccessFile:
                     self.tableInstance = table
                 for file in self.files:
                     self.addItemsInTeble(file)
+        self.zender.resize(self.zender.accessFileWindowName,self.groupName)
+        
             
         
     def accessFileMain(self,zender):
@@ -109,7 +111,7 @@ class AccessFile:
                 dpg.add_image_button(texture_tag="icon_download",tag="zender_download_accessFile", width=50, height=50, frame_padding=0, background_color=(203, 184, 116, 255),callback=self.goToHistory)
                 dpg.add_image_button(texture_tag="icon_go_back",tag="back_icon_access", width=50, height=50, frame_padding=0, background_color=(203, 184, 116, 255),callback=self.backToHome)
                 dpg.bind_theme(self.zender.WindowTheam)
-                self.fetchData()
-        self.zender.resize(self.zender.accessFileWindowName,self.groupName)
+        self.zender.resize(self.zender.accessFileWindowName)
+        self.fetchData()
     
         

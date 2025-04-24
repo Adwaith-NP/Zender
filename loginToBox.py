@@ -75,7 +75,7 @@ class LoginToBox:
                 dpg.add_input_text(tag="boxId",pos=(80,60),width=390,hint='Box Id')
                 dpg.add_input_text(tag="boxPassword",pos=(80,60),width=390,hint='Password')
                 dpg.add_button(label="Access The Box", tag="accessBoc", pos=(0, 0), width=390, height=60,callback=self.loginToBox)
-                dpg.add_image_button(texture_tag="icon_go_back",tag="back_icon", width=50, height=50, frame_padding=0, background_color=(203, 184, 116, 255),callback=self.backToHome)
+                dpg.add_image_button(texture_tag="icon_go_back",tag="back_icon", width=50, height=50, frame_padding=0, background_color=(203, 184, 116, 255),callback=self.backToHome,pos=(0,0))
                 
                 dpg.bind_item_theme("userId", zender.input_theme)
                 dpg.bind_item_font("userId", zender.fontSetUp)
