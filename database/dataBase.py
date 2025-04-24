@@ -76,7 +76,8 @@ class DataBase:
                 cursor.execute("SELECT * FROM box WHERE boxName = ?",(boxId,))
                 conn.commit()
                 rows = cursor.fetchall()
-            return rows[0]
+            if rows:
+                return rows[0]
         except KeyError as e:
             return False
         

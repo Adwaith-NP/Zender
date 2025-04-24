@@ -10,7 +10,42 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 import base64
 from database.dataBase import DataBase
-    
+
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.fernet import Fernet
+from cryptography.hazmat.backends import default_backend
+
+class JSONEncryptor:
+    def __init__(self, password: str):
+        self.password = password.encode()
+        self.backend = default_backend()
+
+    def _derive_key(self, salt: bytes) -> bytes:
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=390000,
+            backend=self.backend
+        )
+        return base64.urlsafe_b64encode(kdf.derive(self.password))
+
+    def encrypt_json(self, data: dict) -> bytes:
+        json_data = json.dumps(data).encode()
+        salt = os.urandom(16)
+        key = self._derive_key(salt)
+        f = Fernet(key)
+        encrypted = f.encrypt(json_data)
+        return salt + encrypted  # prepend salt to use it during decryption
+
+    def decrypt_json(self, encrypted_data: bytes) -> dict:
+        salt = encrypted_data[:16]
+        real_data = encrypted_data[16:]
+        key = self._derive_key(salt)
+        f = Fernet(key)
+        decrypted = f.decrypt(real_data)
+        return json.loads(decrypted.decode())
+
 class subTask:
     def __init__(self,reciverId,BASE_DIR):
         self.BASE_DIR = BASE_DIR
@@ -20,7 +55,7 @@ class subTask:
         self.connectRelay()
     async def connectToRelay(self):
         try:
-            url = f"ws://127.0.0.1:8000/ws/relay/publicKey/{self.reciverId}/"
+            url = f"ws://127.0.0.1:8000/ws/relay/subTask/{self.reciverId}/"
             self.relayConnection = await websockets.connect(url)
         except:
             print('error') ## change after development
@@ -43,7 +78,7 @@ class subTask:
     def publicKey(self):
         self.loop.create_task(self.shearPublicKey())
         
-    async def authentication(self,info,publicKey):
+    async def authentication(self,info):
         while self.relayConnection is None:
             await asyncio.sleep(0.1)
         db = DataBase()
@@ -62,13 +97,15 @@ class subTask:
                 data = {
                     'fileInfo' : boxInfo,
                 }
-                encObj = passwordEncryptAndDecrypt(self.BASE_DIR)
-                publicKeyData = serialization.load_pem_public_key(publicKey.encode('utf-8'))
-                encData = encObj.encrypt_json(data_dict=data,public_key=publicKeyData)
+                encObj = JSONEncryptor(password=info['password'])
+                encData = encObj.encrypt_json(data=data)
+                encData = base64.b64encode(encData).decode()
             await self.relayConnection.send(json.dumps({'response':'sharingFileInfo','status':status,'data':encData}))
+        else:
+            await self.relayConnection.send(json.dumps({'response':'sharingFileInfo','status':404,'data':encData}))
     
-    def authenticationResponse(self,info,publicKey):
-        self.loop.create_task(self.authentication(info,publicKey))
+    def authenticationResponse(self,info):
+        self.loop.create_task(self.authentication(info))
 
 class RequestHandling:
     def __init__(self,userId,url,BASE_DIR):
@@ -97,11 +134,10 @@ class RequestHandling:
                     thread.start()
                 elif data['request'] == 'authentication':
                     reviverId = data['reciverId']
-                    publicKey = data['userPublicKey']
                     encObj = passwordEncryptAndDecrypt(self.BASE_DIR)
                     info = encObj.decrypt_text(data['data'])
                     auth = subTask(reviverId,self.BASE_DIR)
-                    thread = threading.Thread(target=auth.authenticationResponse,args=(info,publicKey))
+                    thread = threading.Thread(target=auth.authenticationResponse,args=(info,))
                     thread.start()
         self.loop.call_soon_threadsafe(self.loop.stop)
                     
@@ -192,7 +228,7 @@ class Request:
             url = f"ws://127.0.0.1:8000/ws/relay/request/{self.userId}/"
             self.relayConnection = await websockets.connect(url)
         except:
-            print('error') ## change after development
+            self.relayConnection = 404
             
     def connectRelay(self):
         self.loop.create_task(self.connectToRelay())
@@ -200,13 +236,20 @@ class Request:
     async def requestForPublicKey(self,userId):
         while self.relayConnection is None:
             await asyncio.sleep(0.1)
+        if self.relayConnection == 404:
+            data = {'status':500}
+            self.Queue.put(data)
+            return
         data = {
             'request' : 'givePublicKey',
             'userId' : userId,
         }
         jsonData = json.dumps(data)
         await self.relayConnection.send(jsonData)
-        publicKey = await asyncio.wait_for(self.relayConnection.recv(),timeout=3)
+        try:
+            publicKey = await asyncio.wait_for(self.relayConnection.recv(),timeout=2)
+        except:
+            publicKey = None
         if publicKey:
             key = json.loads(publicKey)
             if 'publicKey' in key:
@@ -224,6 +267,10 @@ class Request:
     async def authentication(self,userId,boxId,password):
         while self.relayConnection is None:
             await asyncio.sleep(0.1)
+        if self.relayConnection == 404:
+            data = {'status':500}
+            self.Queue.put(data)
+            return
         self.loop.create_task(self.requestForPublicKey(userId))
         while self.publicKeyData is None:
             await asyncio.sleep(0.1)
@@ -240,14 +287,26 @@ class Request:
                 'request' : 'authentication',
                 'userId' : userId,
                 'data' : encrypt_data,
-                'userPublicKey' : userPublicKey,
             }
             jsonRequest = json.dumps(request)
             await self.relayConnection.send(jsonRequest)
-            replay = await asyncio.wait_for(self.relayConnection.recv(),timeout=3)
+            try:
+                replay = await asyncio.wait_for(self.relayConnection.recv(),timeout=2)
+            except:
+                replay = None
             if replay:
                 jsonData = json.loads(replay)
-                self.Queue.put(jsonData)
+                if jsonData['status'] == 200:
+                    data = jsonData['data']
+                    data = base64.b64decode(data)
+                    jsonDecrypt = JSONEncryptor(password=password)
+                    jsonDecryptedData = jsonDecrypt.decrypt_json(data)
+                    returnData = jsonDecryptedData['fileInfo']
+                    data = {'status':200,'replay':returnData,'publicKey':publicKey}
+                    self.Queue.put(data)
+                else:
+                    data = {'status':404}
+                    self.Queue.put(data)
             else:
                 data = {'status':404}
                 self.Queue.put(data)
@@ -255,8 +314,9 @@ class Request:
                 #     info = encObj.decrypt_text(jsonData['data'])
                 #     print(info)
         else:
-            print('not fount')
-            #declare the alert logic
+            data = {'status':404}
+            self.Queue.put(data)
+            
         
         
     def authenticationRequest(self,userId,boxId,password):

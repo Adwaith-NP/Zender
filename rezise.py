@@ -27,7 +27,7 @@ def resizeElement(windowName,self,tagList=[],tag=None,notification=False):
         for tagName in tagList:
             dpg.set_item_indent(tagName,(width//100)*10)
         if tag == 'fileInfo':
-            dpg.set_item_pos("fileInfo", [(width / 2) - 180, (height / 2)-150])
+            dpg.set_item_pos("fileInfo", [(width / 2) - 275, (height / 2)-200])
             
     elif windowName == self.historyWindow:
         dpg.set_item_pos("icon_text", [width//2, 40])

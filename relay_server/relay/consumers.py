@@ -58,7 +58,6 @@ class OneTimeRequest(AsyncWebsocketConsumer):
                     request = json.dumps({
                         'request':'authentication',
                         'data' : jsonData['data'],
-                        'userPublicKey' : jsonData['userPublicKey'],
                         'reciverId' : self.userId,
                     })
                 if senderUserId in active_connections and request:
@@ -67,10 +66,6 @@ class OneTimeRequest(AsyncWebsocketConsumer):
                 else:
                     message = json.dumps({'status':404})
                     await self.send(message)
-                    
-            else:
-                message = json.dumps({'status':404})
-                await self.send(message)
     
     async def disconnect(self, close_code):
         if self.userId in request_active_connections:
