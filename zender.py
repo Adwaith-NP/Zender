@@ -30,6 +30,7 @@ class ZenderGui:
         self.userId = 'demo'
         self.stopSpinning = True
         self.parentWindow = self.homeWindowName
+        self.IP = '127.0.0.1'
     def generate_secret_key(self,length=10):
         characters = string.ascii_letters + string.digits + string.punctuation
         secret_key = ''.join(random.choice(characters) for _ in range(length))
@@ -39,7 +40,7 @@ class ZenderGui:
         with open(jsonFile,'r') as file:
             jsonData = json.load(file)
         if 'status' in jsonData and not jsonData['status']:
-            response = requests.get('http://127.0.0.1:8000/userId/')
+            response = requests.get(f'http://{self.IP}:8000/userId/')
             data = response.json()  # 👈 This parses the JSON
             newUser = data['newUserId']
             SECRET_KEY = self.generate_secret_key()
@@ -55,12 +56,12 @@ class ZenderGui:
             
             
     def connectToRelayServer(self):
-        url = f"ws://127.0.0.1:8000/ws/relay/{self.userId}/"
-        self.connection = RequestHandling(self.userId,url,self.BASE_DIR)
+        url = f"ws://{self.IP}:8000/ws/relay/{self.userId}/"
+        self.connection = RequestHandling(self.userId,url,self.BASE_DIR,self.IP)
         self.connection.startScaningThread()
         
     def requestForLogin(self,senderId,boxId,password,Queue):
-        request = Request(self.userId,self.BASE_DIR,Queue)
+        request = Request(self.userId,self.BASE_DIR,Queue,self.IP)
         request.loginRequestThread(senderId,boxId,password)
         
     def fileRequest(self,userId,token,fileId,Queue,fileName,password):

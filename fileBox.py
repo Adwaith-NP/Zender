@@ -117,7 +117,7 @@ class FileBox:
                 if result:
                     if not self.encrypt:
                         self.zender.stopSpinning = False
-                        self.zender.loadingWindow(self.zender.fileBox,"Coping pleas wait",[self.groupName,"addNewFileWindow"])
+                        self.zender.loadingWindow(self.zender.fileBox,"Copying... pleas wait",[self.groupName,"addNewFileWindow"])
                         thread = threading.Thread(target=self.copyFile,args=(filePath,self.fileDir,fileName,filesize,result))
                         thread.start()
                     else:
@@ -296,7 +296,7 @@ class FileBox:
                 dpg.bind_item_theme("passwordEnc", self.zender.input_theme)
                 dpg.bind_item_font("passwordEnc", self.zender.fontSetUp)
                 
-                button = dpg.add_button(label="Download",width=450,height=50,pos=(50,240),callback=self.verifyPassword)
+                button = dpg.add_button(label="LogIn",width=450,height=50,pos=(50,240),callback=self.verifyPassword)
                 dpg.bind_item_theme(button, self.zender.buttonTheam((78, 93, 108, 255)))
                 dpg.bind_item_font(button,self.zender.fontSetUp)
                 

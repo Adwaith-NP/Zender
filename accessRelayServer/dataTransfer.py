@@ -72,7 +72,8 @@ class JSONEncryptor:
         return json.loads(decrypted.decode())
 
 class subTask:
-    def __init__(self,reciverId,BASE_DIR):
+    def __init__(self,reciverId,BASE_DIR,IP):
+        self.IP = IP
         self.BASE_DIR = BASE_DIR
         self.reciverId = reciverId
         self.relayConnection = None
@@ -80,7 +81,7 @@ class subTask:
         self.connectRelay()
     async def connectToRelay(self):
         try:
-            url = f"ws://127.0.0.1:8000/ws/relay/subTask/{self.reciverId}/"
+            url = f"ws://{self.IP}:8000/ws/relay/subTask/{self.reciverId}/"
             self.relayConnection = await websockets.connect(url)
         except:
             print('error') ## change after development
@@ -136,7 +137,8 @@ class subTask:
         self.loop.create_task(self.authentication(info))
         
 class sendFile:
-    def __init__(self,reciverId,transactionId,BASE_DIR):
+    def __init__(self,reciverId,transactionId,BASE_DIR,IP):
+        self.IP = IP
         self.transactionId = transactionId
         self.reciverId = reciverId
         self.BASE_DIR = BASE_DIR
@@ -145,7 +147,7 @@ class sendFile:
         self.connectRelay()
     async def connectToRelay(self):
         try:
-            url = f"ws://127.0.0.1:8000/ws/relay/sendFile/{self.transactionId}/{self.reciverId}/"
+            url = f"ws://{self.IP}:8000/ws/relay/sendFile/{self.transactionId}/{self.reciverId}/"
             self.relayConnection = await websockets.connect(url)
         except:
             print('error') ## change after development
@@ -170,10 +172,10 @@ class sendFile:
                     
                     message = json.dumps({'message' : 'enc','enc':enc})
                     await self.relayConnection.send(message)
-                    
+                    chunk_size = 512 * 1024 
                     with open(filePath, 'rb') as f:
                         while True:
-                            chunk = f.read(1024)
+                            chunk = f.read(chunk_size)
                             if not chunk:
                                 break
                             await self.relayConnection.send(chunk)
@@ -210,7 +212,8 @@ class sendFile:
         
 
 class RequestHandling:
-    def __init__(self,userId,url,BASE_DIR):
+    def __init__(self,userId,url,BASE_DIR,IP):
+        self.IP = IP
         self.BASE_DIR = BASE_DIR
         self.url = url
         self.userId = userId
@@ -218,8 +221,6 @@ class RequestHandling:
         self.loop = asyncio.new_event_loop()
         self.recv_lock = asyncio.Lock()
         
-    def verifyRequest(self,data):
-        pass
     async def requestHandler(self):
         #while self.relayConnection is None:
         await asyncio.sleep(3)
@@ -234,14 +235,14 @@ class RequestHandling:
                 data = json.loads(request)
                 if data['request'] == 'givePublicKey':
                     reviverId = data['reciverId']
-                    sendPublicKey = subTask(reviverId,self.BASE_DIR)
+                    sendPublicKey = subTask(reviverId,self.BASE_DIR,self.IP)
                     thread = threading.Thread(target=sendPublicKey.publicKey)
                     thread.start()
                 elif data['request'] == 'authentication':
                     reviverId = data['reciverId']
                     encObj = passwordEncryptAndDecrypt(self.BASE_DIR)
                     info = encObj.decrypt_text(data['data'])
-                    auth = subTask(reviverId,self.BASE_DIR)
+                    auth = subTask(reviverId,self.BASE_DIR,self.IP)
                     thread = threading.Thread(target=auth.authenticationResponse,args=(info,))
                     thread.start()
                 elif data['request'] == 'giveFile':
@@ -250,7 +251,7 @@ class RequestHandling:
                     clientInfo = data['clientInfo']
                     encObj = passwordEncryptAndDecrypt(self.BASE_DIR)
                     info = encObj.decrypt_text(clientInfo)
-                    response = sendFile(transactionId=transactionId,reciverId=reviverId,BASE_DIR = self.BASE_DIR)
+                    response = sendFile(transactionId=transactionId,reciverId=reviverId,BASE_DIR = self.BASE_DIR,IP = self.IP)
                     thread = threading.Thread(target=response.passFile,args=(info,),daemon=True).start()
                     
         self.loop.call_soon_threadsafe(self.loop.stop)
@@ -263,7 +264,8 @@ class RequestHandling:
         try:
             self.relayConnection = await websockets.connect(self.url)
         except:
-            pass ## change after development
+            print('error')
+            ## change after development
             
     def connectRelay(self):
         self.loop.create_task(self.connectToRelay())
@@ -330,7 +332,8 @@ class passwordEncryptAndDecrypt:
         
         
 class Request:
-    def __init__(self,userId,BASE_DIR,Queue):
+    def __init__(self,userId,BASE_DIR,Queue,IP):
+        self.IP = IP
         self.Queue = Queue
         self.BASE_DIR = BASE_DIR
         self.userId = userId
@@ -339,10 +342,11 @@ class Request:
         self.publicKeyData = None
     async def connectToRelay(self):
         try:
-            url = f"ws://127.0.0.1:8000/ws/relay/request/{self.userId}/"
+            url = f"ws://{self.IP}:8000/ws/relay/request/{self.userId}/"
             self.relayConnection = await websockets.connect(url)
         except:
             self.relayConnection = 404
+            print('error')
             
     def connectRelay(self):
         self.loop.create_task(self.connectToRelay())
@@ -498,7 +502,7 @@ class Request:
                                 home_dir = Path.home()
                                 downloads_dir = home_dir / 'Downloads'
                                 path = os.path.join(downloads_dir,fileName)
-                        
+                            total_bytes = 0
                             with open(path,'wb') as file:
                                 while True:
                                     try:
@@ -509,6 +513,9 @@ class Request:
                                         complite = True
                                         break
                                     file.write(data)
+                                    total_bytes += len(data)
+                                    downloaded_mb = total_bytes / (1024 * 1024)
+                                    print(f"Downloaded: {downloaded_mb:.2f} MB", end='\r')
                             if complite and enc:
                                 decrypt = Cryptography()
                                 decrypt.decrypt_file(path,fileName,password)
