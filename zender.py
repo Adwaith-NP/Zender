@@ -3,9 +3,7 @@ from pathlib import Path
 import os
 from rezise import resizeElement
 from history import History
-from yourBox import YourBox
 import pyperclip #dependecy
-import asyncio
 from PIL import Image #imported pip install pillow
 import time
 from accessRelayServer.dataTransfer import RequestHandling,Request
