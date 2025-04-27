@@ -10,11 +10,36 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 import base64
 from database.dataBase import DataBase
-
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
+import jwt
+import datetime
+from pathlib import Path
+from cryptographyFiles.Cryptography import Cryptography
 
+class jwtAuth:
+    def __init__(self,BASE_DIR):
+        path = os.path.join(BASE_DIR,"account.json")
+        with open(path,"r") as file:
+            data = json.load(file)
+        self.SECRET_KEY = data['SECRET_KEY']
+    def createToken(self,boxId):
+
+        # User data to include in the token
+        payload = {
+            "boxId": boxId,
+            "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)  # Expiration time (optional but important)
+        }
+
+        return jwt.encode(payload, self.SECRET_KEY, algorithm="HS256")
+    
+    def decryptToken(self,token):
+        try:
+            decoded_payload = jwt.decode(token, self.SECRET_KEY, algorithms=["HS256"])
+            return decoded_payload['boxId']
+        except:
+            return False
 class JSONEncryptor:
     def __init__(self, password: str):
         self.password = password.encode()
@@ -93,9 +118,12 @@ class subTask:
                 if boxInfo[2] == info['password']:
                     status = 200
             if status == 200:
+                jwtToken = jwtAuth(self.BASE_DIR)
+                token = jwtToken.createToken(info['boxId'])
                 boxInfo = db.listAllFileByBoxId(boxInfo[0])
                 data = {
                     'fileInfo' : boxInfo,
+                    'jwtToken' : token,
                 }
                 encObj = JSONEncryptor(password=info['password'])
                 encData = encObj.encrypt_json(data=data)
@@ -106,6 +134,80 @@ class subTask:
     
     def authenticationResponse(self,info):
         self.loop.create_task(self.authentication(info))
+        
+class sendFile:
+    def __init__(self,reciverId,transactionId,BASE_DIR):
+        self.transactionId = transactionId
+        self.reciverId = reciverId
+        self.BASE_DIR = BASE_DIR
+        self.relayConnection = None
+        self.loop = asyncio.get_event_loop()
+        self.connectRelay()
+    async def connectToRelay(self):
+        try:
+            url = f"ws://127.0.0.1:8000/ws/relay/sendFile/{self.transactionId}/{self.reciverId}/"
+            self.relayConnection = await websockets.connect(url)
+        except:
+            print('error') ## change after development
+            
+    def connectRelay(self):
+        self.loop.create_task(self.connectToRelay())
+        
+    async def sendFile(self,info):
+        while self.relayConnection is None:
+            await asyncio.sleep(0.1)
+        result = self.verifyUser(info)
+        try:
+            response = await asyncio.wait_for(self.relayConnection.recv(),timeout=2)
+        except:
+            response = None
+        if result:
+            filePath = result[0]
+            enc = result[1]
+            if response:
+                result = json.loads(response)
+                if result['status'] == 200:
+                    
+                    message = json.dumps({'message' : 'enc','enc':enc})
+                    await self.relayConnection.send(message)
+                    
+                    with open(filePath, 'rb') as f:
+                        while True:
+                            chunk = f.read(1024)
+                            if not chunk:
+                                break
+                            await self.relayConnection.send(chunk)
+                    message = json.dumps({'message' : 'completed'})
+                    await self.relayConnection.send(message)
+            await self.relayConnection.close()
+        else:
+            message = json.dumps({'message' : 'invalid_data'})
+        
+    def verifyUser(self,info):
+        token = info['token']
+        fileId = info['fileId']
+        auth = jwtAuth(self.BASE_DIR)
+        boxId = auth.decryptToken(token)
+        if boxId:
+            db = DataBase()
+            fileData = db.getFileInfo(fileId)
+            boxData = db.getDataOfBox(boxId)
+            if boxData and fileData:
+                if boxData[0] == fileData[-1]:
+                    if boxData[3]:
+                        path = os.path.join(self.BASE_DIR,f"files/encrypted/{fileData[1]}")
+                    else:
+                        path = os.path.join(self.BASE_DIR,f"files/non_encrypted/{fileData[1]}")
+                    if os.path.exists(path):
+                        return (path,boxData[3])
+                        
+            
+        
+    def passFile(self,info):
+        self.loop.create_task(self.sendFile(info))
+        
+    
+        
 
 class RequestHandling:
     def __init__(self,userId,url,BASE_DIR):
@@ -115,6 +217,9 @@ class RequestHandling:
         self.relayConnection = None
         self.loop = asyncio.new_event_loop()
         self.recv_lock = asyncio.Lock()
+        
+    def verifyRequest(self,data):
+        pass
     async def requestHandler(self):
         #while self.relayConnection is None:
         await asyncio.sleep(3)
@@ -139,6 +244,15 @@ class RequestHandling:
                     auth = subTask(reviverId,self.BASE_DIR)
                     thread = threading.Thread(target=auth.authenticationResponse,args=(info,))
                     thread.start()
+                elif data['request'] == 'giveFile':
+                    reviverId = data['reciverId']
+                    transactionId = data['transactionId']
+                    clientInfo = data['clientInfo']
+                    encObj = passwordEncryptAndDecrypt(self.BASE_DIR)
+                    info = encObj.decrypt_text(clientInfo)
+                    response = sendFile(transactionId=transactionId,reciverId=reviverId,BASE_DIR = self.BASE_DIR)
+                    thread = threading.Thread(target=response.passFile,args=(info,),daemon=True).start()
+                    
         self.loop.call_soon_threadsafe(self.loop.stop)
                     
                     
@@ -282,7 +396,7 @@ class Request:
             }
             encObj = passwordEncryptAndDecrypt(self.BASE_DIR)
             encrypt_data = encObj.encrypt_json(data_dict=data,public_key=publicKey)
-            userPublicKey = encObj.convetToText(encObj.getPublicKey())
+            # userPublicKey = encObj.convetToText(encObj.getPublicKey())
             request = {
                 'request' : 'authentication',
                 'userId' : userId,
@@ -302,7 +416,8 @@ class Request:
                     jsonDecrypt = JSONEncryptor(password=password)
                     jsonDecryptedData = jsonDecrypt.decrypt_json(data)
                     returnData = jsonDecryptedData['fileInfo']
-                    data = {'status':200,'replay':returnData,'publicKey':publicKey}
+                    token = jsonDecryptedData['jwtToken']
+                    data = {'status':200,'replay':returnData,'publicKey':publicKey,'token':token}
                     self.Queue.put(data)
                 else:
                     data = {'status':404}
@@ -327,8 +442,102 @@ class Request:
         self.connectRelay()
         self.authenticationRequest(userId,boxId,password)
         self.loop.run_forever()
+        
     def loginRequestThread(self,userId,boxId,password):
         threading.Thread(target=self.loginRequest, daemon=True,args=(userId,boxId,password)).start()
+        
+        
+    ## file request
+        
+    async def sendFileRequest(self,userId,token,fileId,fileName,password):
+        while self.relayConnection is None:
+            await asyncio.sleep(0.1)
+        if self.relayConnection == 404:
+            data = {'status':500}
+            self.Queue.put(data)
+            return
+        self.loop.create_task(self.requestForPublicKey(userId))
+        while self.publicKeyData is None:
+            await asyncio.sleep(0.1)
+        if self.publicKeyData != 404:
+            data = {
+                'token' : token,
+                'fileId' : fileId,
+            }
+            encObj = passwordEncryptAndDecrypt(self.BASE_DIR)
+            encrypt_data = encObj.encrypt_json(data_dict=data,public_key=self.publicKeyData)
+            request = {
+                'fileRequest' : 'giveFile',
+                'fileSenderId' : userId,
+                'clientInfo' : encrypt_data,
+            }
+            jsonRequest = json.dumps(request)
+            await self.relayConnection.send(jsonRequest)
+            try:
+                response = await asyncio.wait_for(self.relayConnection.recv(),timeout=2)
+            except:
+                response = None
+            if response:
+                jsonData = json.loads(response)
+                if jsonData['status'] == 200:
+                    data = {'status':200}
+                    self.Queue.put(data)
+                    try:
+                        encMessage = await asyncio.wait_for(self.relayConnection.recv(),timeout=2)
+                    except:
+                        encMessage = None
+                    if encMessage:
+                        message = json.loads(encMessage)
+                        complite = False
+                        if 'enc' in message:
+                            ## start reciving
+                            enc = message['enc']
+                            if enc:
+                                path = os.path.join(self.BASE_DIR,f"files/temp/{fileName}")
+                            else:
+                                home_dir = Path.home()
+                                downloads_dir = home_dir / 'Downloads'
+                                path = os.path.join(downloads_dir,fileName)
+                        
+                            with open(path,'wb') as file:
+                                while True:
+                                    try:
+                                        data = await asyncio.wait_for(self.relayConnection.recv(),timeout=5)
+                                    except:
+                                        break
+                                    if isinstance(data, str) and data == "END":
+                                        complite = True
+                                        break
+                                    file.write(data)
+                            if complite and enc:
+                                decrypt = Cryptography()
+                                decrypt.decrypt_file(path,fileName,password)
+                        else:
+                            data = {'status':404}
+                            self.Queue.put(data)
+                            
+
+            else:
+                data = {'status':404}
+                self.Queue.put(data)
+                                    
+                            
+                    
+                    
+                    
+            
+    def sendFileRequestAwaited(self,userId,token,fileId,fileName,password):
+        self.loop.create_task(self.sendFileRequest(userId,token,fileId,fileName,password))
+        
+    def fileRequest(self,userId,token,fileId,fileName,password):
+        asyncio.set_event_loop(self.loop)
+        self.connectRelay()
+        self.sendFileRequestAwaited(userId,token,fileId,fileName,password)
+        self.loop.run_forever()
+        
+    def fileRequestThread(self,userId,token,fileId,fileName,password):
+        threading.Thread(target=self.fileRequest, daemon=True,args=(userId,token,fileId,fileName,password)).start()
+        
         
         
         

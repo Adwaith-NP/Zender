@@ -107,6 +107,18 @@ class DataBase:
         except:
             return None
         
+    def getFileInfo(self,fileId):
+        try:
+            with sqlite3.connect(self.database) as conn:
+                cursor = conn.cursor()
+                cursor.execute('SELECT * FROM file_info WHERE id = ?', (fileId,))
+                result = cursor.fetchone()
+                if result is None:
+                    return False
+                return result
+        except:
+            return False
+        
     
 # obj = DataBase()
 # print(obj.listAllFileByBoxId(1))

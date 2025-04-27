@@ -80,8 +80,7 @@ class FileBox:
                 os.remove(filePath)
             dpg.delete_item(fileName[1])
             self.groupName.remove(fileName[1])
-            result = self.db.deliteFile(fileName[2])
-            print(result,fileName[2])
+            self.db.deliteFile(fileName[2])
             self.clossFileInfoWindow()
             self.db.decrementCount(fileName[0])
     

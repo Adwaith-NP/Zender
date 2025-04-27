@@ -11,10 +11,14 @@ import time
 from accessRelayServer.dataTransfer import RequestHandling,Request
 import threading
 import time
+import json
+import requests
+import random
+import string
 
 
 class ZenderGui:
-    def __init__(self,userId):
+    def __init__(self):
         self.BASE_DIR = Path(__file__).resolve().parent
         self.homeWindowName = "zender_home"
         self.loginToBoxWindowName = "loginToBox"
@@ -25,9 +29,33 @@ class ZenderGui:
         self.fileBox = "fileBox"
         self.fromWhere = None
         self.history = History()
-        self.userId = userId
+        self.userId = 'demo'
         self.stopSpinning = True
         self.parentWindow = self.homeWindowName
+    def generate_secret_key(self,length=10):
+        characters = string.ascii_letters + string.digits + string.punctuation
+        secret_key = ''.join(random.choice(characters) for _ in range(length))
+        return secret_key
+    def accountSetUp(self):
+        jsonFile = os.path.join(self.BASE_DIR,'account.json')
+        with open(jsonFile,'r') as file:
+            jsonData = json.load(file)
+        if 'status' in jsonData and not jsonData['status']:
+            response = requests.get('http://127.0.0.1:8000/userId/')
+            data = response.json()  # 👈 This parses the JSON
+            newUser = data['newUserId']
+            SECRET_KEY = self.generate_secret_key()
+            jsonData['status'] = True
+            jsonData['userId'] = newUser
+            jsonData['SECRET_KEY'] = SECRET_KEY
+            with open(jsonFile, "w") as file:
+                json.dump(jsonData, file)
+            self.userId = newUser
+        else:
+            self.userId = jsonData['userId']
+        
+            
+            
     def connectToRelayServer(self):
         url = f"ws://127.0.0.1:8000/ws/relay/{self.userId}/"
         self.connection = RequestHandling(self.userId,url,self.BASE_DIR)
@@ -36,6 +64,10 @@ class ZenderGui:
     def requestForLogin(self,senderId,boxId,password,Queue):
         request = Request(self.userId,self.BASE_DIR,Queue)
         request.loginRequestThread(senderId,boxId,password)
+        
+    def fileRequest(self,userId,token,fileId,Queue,fileName,password):
+        request = Request(self.userId,self.BASE_DIR,Queue)
+        request.fileRequestThread(userId,token,fileId,fileName,password)
         
     def noNetwork(self):
         #OnlineOrOffline
@@ -205,6 +237,7 @@ class ZenderGui:
         self.iconSetUp()
         self.inputDecine()
         self.setUpFont()
+        self.accountSetUp()
         self.connectToRelayServer()
         threading.Thread(target=self.noNetwork, daemon=True).start()
         self.button1 = self.buttonTheam((157, 104, 75, 255))
@@ -243,10 +276,6 @@ class ZenderGui:
         dpg.start_dearpygui()
         dpg.destroy_context()
 
-import sys
-if len(sys.argv) > 1:
-    value = sys.argv[1]
-
 if __name__ == "__main__":
-    zender = ZenderGui(value)
+    zender = ZenderGui()
     zender.run()

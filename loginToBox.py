@@ -27,11 +27,13 @@ class LoginToBox:
                 elif response['status'] == 200:
                     files = response['replay']
                     publicKey = response['publicKey']
+                    jwtToken = response['token']
                     userId = self.info[0]
                     boxId = self.info[1]
                     password = self.info[2]
                     self.goToFileAccess(
                         files=files,
+                        token = jwtToken,
                         publicKey=publicKey,
                         userId=userId,
                         boxId=boxId,
@@ -50,7 +52,7 @@ class LoginToBox:
             self.info = (userId,boxId,password)
             self.zender.requestForLogin(userId,boxId,password,self.Queue)
         
-    def goToFileAccess(self,files,publicKey,userId,boxId,password):
+    def goToFileAccess(self,files,publicKey,userId,boxId,password,token):
         if dpg.does_item_exist(self.zender.accessFileWindowName):
             dpg.delete_item(self.zender.accessFileWindowName)
         dpg.hide_item(self.zender.loginToBoxWindowName)
@@ -59,7 +61,8 @@ class LoginToBox:
             publicKey=publicKey,
             userId=userId,
             BoxId=boxId,
-            Password=password)
+            Password=password,
+            token = token,)
         self.AccessFileObj.accessFileMain(zender=self.zender)
     def backToHome(self):
         dpg.hide_item(self.zender.loginToBoxWindowName)

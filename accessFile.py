@@ -1,15 +1,25 @@
 import dearpygui.dearpygui as dpg
-import time
 import threading
+import queue
+import time
 class AccessFile:
-    def __init__(self,fils,publicKey,userId,BoxId,Password):
+    def __init__(self,fils,publicKey,userId,BoxId,Password,token):
         self.userId = userId
         self.BoxId = BoxId
         self.password = Password
         self.publicKey = publicKey
         self.files = fils
+        self.token = token
         self.childWindowNotShown = True
         self.fileCount = 0
+        self.queue = queue.Queue()
+    def hide_text(self):
+        time.sleep(3)
+        dpg.set_value("accesswarning", "")
+    def notofication(self, text):
+        dpg.set_value("accesswarning", text)
+        thread = threading.Thread(target=self.hide_text)
+        thread.start()
     def goToHistory(self):
         self.zender.fromWhere = self.zender.accessFileWindowName
         if dpg.does_item_exist(self.zender.historyWindow):
@@ -33,8 +43,20 @@ class AccessFile:
             self.childWindowNotShown = True
             dpg.delete_item("fileInfo")
             self.zender.resize(self.zender.accessFileWindowName,self.groupName)
+            
+    def scanForNotofiacation(self):
+        while True:
+            response = self.queue.get()
+            if response:
+                if response['status'] == 200:
+                    self.notofication('download started visit history')
+                if response['status'] == 404:
+                    self.notofication('some error are occured log again')
+            
+    def download(self,sender, app_data, user_data):
+        self.zender.fileRequest(self.userId,self.token,user_data[0],self.queue,user_data[1],self.password)
         
-    def fileInfo(self,sender, app_data, user_data,fileId):
+    def fileInfo(self,sender, app_data, user_data):
         ## demo : [120, 'WhatsApp Image 2025-04-21 at 22.15.28.jpeg', '144.46 KB', '2025-04-21 17:30:18', 13]
         if not dpg.does_item_exist('fileInfo') and self.childWindowNotShown:
             self.childWindowNotShown = False
@@ -65,7 +87,7 @@ class AccessFile:
                         dpg.bind_item_theme(text, self.zender.textColorSetUp((255, 255, 255, 255))) 
                     dpg.bind_item_font(group,self.zender.fontSetUp)
                     dpg.bind_item_theme(group, self.zender.textColorSetUp((0, 0, 0, 255))) 
-                button = dpg.add_button(label="Download",width=300,height=50,pos=(125,330))
+                button = dpg.add_button(label="Download",width=300,height=50,pos=(125,330),callback=self.download,user_data=(user_data[0],user_data[1]))
                 dpg.bind_item_theme(button, self.zender.buttonTheam((78, 93, 108, 255)))
                 dpg.bind_item_font(button,self.zender.fontSetUp)
             self.zender.resize(self.zender.accessFileWindowName,self.groupName,"fileInfo")
@@ -105,12 +127,16 @@ class AccessFile:
             
         
     def accessFileMain(self,zender):
+        threading.Thread(target=self.scanForNotofiacation,daemon=True).start()
         self.zender = zender
         if not dpg.does_item_exist(self.zender.accessFileWindowName):
             with dpg.window(tag=self.zender.accessFileWindowName,pos=(0, 0), no_title_bar=True, no_resize=True, no_move=True):
                 dpg.add_image_button(texture_tag="icon_download",tag="zender_download_accessFile", width=50, height=50, frame_padding=0, background_color=(203, 184, 116, 255),callback=self.goToHistory)
                 dpg.add_image_button(texture_tag="icon_go_back",tag="back_icon_access", width=50, height=50, frame_padding=0, background_color=(203, 184, 116, 255),callback=self.backToHome)
+                dpg.add_text("",pos=(70,20),tag='accesswarning')
                 dpg.bind_theme(self.zender.WindowTheam)
+                dpg.bind_item_theme('accesswarning', zender.textColorSetUp((255, 69, 0, 255)))
+                dpg.bind_item_font("accesswarning", zender.large_font_max)
         self.zender.resize(self.zender.accessFileWindowName)
         self.fetchData()
     
