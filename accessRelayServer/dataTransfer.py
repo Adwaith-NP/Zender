@@ -512,6 +512,7 @@ class Request:
                             if complite and enc:
                                 decrypt = Cryptography()
                                 decrypt.decrypt_file(path,fileName,password)
+                                os.remove(fileName)
                         else:
                             data = {'status':404}
                             self.Queue.put(data)
