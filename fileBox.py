@@ -11,7 +11,7 @@ from pathlib import Path
 import bcrypt
 import time
 from cryptographyFiles.Cryptography import Cryptography
-
+from urllib.parse import urlparse, unquote
 class FileSelection:
     def open_file_dialog(self,queue):
         file_path = filedialog.askopenfilename()
@@ -103,8 +103,12 @@ class FileBox:
         if self.filePath:
             filePath = os.path.join(self.filePath)
             parsed = urlparse(filePath)
-            
-            fileName = os.path.basename(parsed.path)
+            # fileName = os.path.basename(parsed.path)
+            path = parsed.path
+            if parsed.fragment:
+                path += "#" + parsed.fragment
+            fileName = os.path.basename(path)
+            fileName = unquote(fileName) 
             size_bytes = os.path.getsize(filePath)
             if size_bytes/(1024 * 1024) > 1:
                 filesize = "{:.2f} MB".format(size_bytes / (1024 * 1024))
