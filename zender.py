@@ -30,7 +30,7 @@ class ZenderGui:
         self.userId = 'Connect to network and restart'
         self.stopSpinning = True
         self.parentWindow = self.homeWindowName
-        self.IP = '127.0.0.1'
+        self.IP = '192.168.190.132'
     def generate_secret_key(self,length=10):
         characters = string.ascii_letters + string.digits + string.punctuation
         secret_key = ''.join(random.choice(characters) for _ in range(length))
@@ -69,7 +69,7 @@ class ZenderGui:
         request.loginRequestThread(senderId,boxId,password)
         
     def fileRequest(self,userId,token,fileId,Queue,fileName,password):
-        request = Request(self.userId,self.BASE_DIR,Queue)
+        request = Request(self.userId,self.BASE_DIR,Queue,self.IP)
         request.fileRequestThread(userId,token,fileId,fileName,password)
         
     def noNetwork(self):
