@@ -27,7 +27,7 @@ class ZenderGui:
         self.fileBox = "fileBox"
         self.fromWhere = None
         self.history = History()
-        self.userId = 'demo'
+        self.userId = 'Connect to network and restart'
         self.stopSpinning = True
         self.parentWindow = self.homeWindowName
         self.IP = '127.0.0.1'
@@ -40,16 +40,20 @@ class ZenderGui:
         with open(jsonFile,'r') as file:
             jsonData = json.load(file)
         if 'status' in jsonData and not jsonData['status']:
-            response = requests.get(f'http://{self.IP}:8000/userId/')
-            data = response.json()  # 👈 This parses the JSON
-            newUser = data['newUserId']
-            SECRET_KEY = self.generate_secret_key()
-            jsonData['status'] = True
-            jsonData['userId'] = newUser
-            jsonData['SECRET_KEY'] = SECRET_KEY
-            with open(jsonFile, "w") as file:
-                json.dump(jsonData, file)
-            self.userId = newUser
+            try:
+                response = requests.get(f'http://{self.IP}:8000/userId/')
+            except:
+                return
+            if response:
+                data = response.json()  # 👈 This parses the JSON
+                newUser = data['newUserId']
+                SECRET_KEY = self.generate_secret_key()
+                jsonData['status'] = True
+                jsonData['userId'] = newUser
+                jsonData['SECRET_KEY'] = SECRET_KEY
+                with open(jsonFile, "w") as file:
+                    json.dump(jsonData, file)
+                self.userId = newUser
         else:
             self.userId = jsonData['userId']
         
