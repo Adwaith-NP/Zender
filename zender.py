@@ -15,6 +15,10 @@ import random
 import string
 
 
+class DownloadQueue:
+    pass
+
+
 class ZenderGui:
     def __init__(self):
         self.BASE_DIR = Path(__file__).resolve().parent
@@ -30,7 +34,7 @@ class ZenderGui:
         self.userId = 'Connect to network and restart'
         self.stopSpinning = True
         self.parentWindow = self.homeWindowName
-        self.IP = '192.168.190.132'
+        self.IP = '127.0.0.1'
     def generate_secret_key(self,length=10):
         characters = string.ascii_letters + string.digits + string.punctuation
         secret_key = ''.join(random.choice(characters) for _ in range(length))

@@ -99,16 +99,30 @@ class FileBox:
         self.addItemsInTeble(fileName,filesize,today,fileId)
         self.zender.resize(self.zender.fileBox,self.groupName)
         
+    def getNameUrl(self,filePath):
+        filePath = os.path.join(filePath)
+        parsed = urlparse(filePath)
+        fileName = os.path.basename(parsed.path)
+        fileName = unquote(fileName) 
+        return fileName
+    
+    def getUrlWithouFileName(self,filePath):
+        parsed = urlparse(filePath)
+        full_path = parsed.path
+        path_without_file = os.path.dirname(full_path)
+        return path_without_file
+    
+    def verifyFileName(self,fileName,filePath):
+        compliteUrl = os.path.join(filePath,fileName)
+        return os.path.exists(compliteUrl)
+        
     def addFile(self):
         if self.filePath:
             filePath = os.path.join(self.filePath)
-            parsed = urlparse(filePath)
-            # fileName = os.path.basename(parsed.path)
-            path = parsed.path
-            if parsed.fragment:
-                path += "#" + parsed.fragment
-            fileName = os.path.basename(path)
-            fileName = unquote(fileName) 
+            fileName = self.getNameUrl(filePath)
+            pathWithouName = self.getUrlWithouFileName(filePath)
+            if not self.verifyFileName(fileName,pathWithouName):
+                return
             size_bytes = os.path.getsize(filePath)
             if size_bytes/(1024 * 1024) > 1:
                 filesize = "{:.2f} MB".format(size_bytes / (1024 * 1024))
