@@ -9,7 +9,6 @@ class History:
         while self.Run:
             time.sleep(0.3)
             for instance,name,size,timeTaken,run in self.textListWithThread:
-                print(instance,name,size,timeTaken,run)
                 if run:
                     fileName = instance.fileName
                     fileSize = instance.fileZise

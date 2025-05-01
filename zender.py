@@ -49,7 +49,7 @@ class ZenderGui:
         self.userId = 'Connect to network and restart'
         self.stopSpinning = True
         self.parentWindow = self.homeWindowName
-        self.IP = '127.0.0.1'
+        self.IP = 'orange-doodle-r4gv66rwqvjv35jwj-8000.app.github.dev'
         
         downloadQueue = DownloadQueue()
         self.downloadQ = downloadQueue
@@ -70,7 +70,7 @@ class ZenderGui:
             jsonData = json.load(file)
         if 'status' in jsonData and not jsonData['status']:
             try:
-                response = requests.get(f'http://{self.IP}:8000/userId/')
+                response = requests.get(f'http://{self.IP}/userId/')
             except:
                 return
             if response:
@@ -89,7 +89,7 @@ class ZenderGui:
             
             
     def connectToRelayServer(self):
-        url = f"ws://{self.IP}:8000/ws/relay/{self.userId}/"
+        url = f"wss://{self.IP}/ws/relay/{self.userId}/"
         self.connection = RequestHandling(self.userId,url,self.BASE_DIR,self.IP)
         self.connection.startScaningThread()
         
@@ -303,6 +303,6 @@ class ZenderGui:
         dpg.start_dearpygui()
         dpg.destroy_context()
         
-
-zender = ZenderGui()
-zender.run()
+if __name__ == "__main__":
+    zender = ZenderGui()
+    zender.run()

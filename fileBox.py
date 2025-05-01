@@ -159,8 +159,9 @@ class FileBox:
         if self.fileNotInSelection:
             self.fileNotInSelection = False
             selecttion = FileSelection()
+            target = selecttion.open_file_dialog
             queue = multiprocessing.Queue()
-            process = multiprocessing.Process(target=selecttion.open_file_dialog,args=(queue,))
+            process = multiprocessing.Process(target=target,args=(queue,))
             process.start()
             process.join() 
             result = queue.get()

@@ -3,7 +3,7 @@ import asyncio
 import json
 import os
 import bcrypt
-import ssl
+# import ssl
 from cryptography.hazmat.primitives import serialization
 import threading
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
@@ -82,7 +82,7 @@ class subTask:
         self.connectRelay()
     async def connectToRelay(self):
         try:
-            url = f"ws://{self.IP}:8000/ws/relay/subTask/{self.reciverId}/"
+            url = f"wss://{self.IP}/ws/relay/subTask/{self.reciverId}/"
             self.relayConnection = await websockets.connect(url)
         except:
             print('error') ## change after development
@@ -148,7 +148,7 @@ class sendFile:
         self.connectRelay()
     async def connectToRelay(self):
         try:
-            url = f"ws://{self.IP}:8000/ws/relay/sendFile/{self.transactionId}/{self.reciverId}/"
+            url = f"wss://{self.IP}/ws/relay/sendFile/{self.transactionId}/{self.reciverId}/"
             self.relayConnection = await websockets.connect(url)
         except:
             print('error') ## change after development
@@ -347,7 +347,7 @@ class Request:
         self.publicKeyData = None
     async def connectToRelay(self):
         try:
-            url = f"ws://{self.IP}:8000/ws/relay/request/{self.userId}/"
+            url = f"wss://{self.IP}/ws/relay/request/{self.userId}/"
             self.relayConnection = await websockets.connect(url)
         except:
             self.relayConnection = 404
