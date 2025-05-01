@@ -22,12 +22,7 @@ class AccessFile:
         thread.start()
     def goToHistory(self):
         self.zender.fromWhere = self.zender.accessFileWindowName
-        if dpg.does_item_exist(self.zender.historyWindow):
-            dpg.hide_item(self.zender.accessFileWindowName)
-            dpg.show_item(self.zender.historyWindow)
-            self.zender.resize(self.zender.historyWindow)
-        else:
-            self.zender.history.historyManin(zender=self.zender)
+        self.zender.history.historyManin(zender=self.zender)
     def backToHome(self):
         dpg.hide_item(self.zender.accessFileWindowName)
         dpg.show_item(self.zender.homeWindowName)
@@ -54,7 +49,8 @@ class AccessFile:
                     self.notofication('some error are occured log again')
             
     def download(self,sender, app_data, user_data):
-        self.zender.fileRequest(self.userId,self.token,user_data[0],self.queue,user_data[1],self.password)
+        downloadQ = self.zender.downloadQ.setUpDownloadInfoThread(user_data[1],user_data[2])
+        self.zender.fileRequest(self.userId,self.token,user_data[0],self.queue,user_data[1],self.password,downloadQ)
         
     def fileInfo(self,sender, app_data, user_data):
         ## demo : [120, 'WhatsApp Image 2025-04-21 at 22.15.28.jpeg', '144.46 KB', '2025-04-21 17:30:18', 13]
@@ -87,7 +83,7 @@ class AccessFile:
                         dpg.bind_item_theme(text, self.zender.textColorSetUp((255, 255, 255, 255))) 
                     dpg.bind_item_font(group,self.zender.fontSetUp)
                     dpg.bind_item_theme(group, self.zender.textColorSetUp((0, 0, 0, 255))) 
-                button = dpg.add_button(label="Download",width=300,height=50,pos=(125,330),callback=self.download,user_data=(user_data[0],user_data[1]))
+                button = dpg.add_button(label="Download",width=300,height=50,pos=(125,330),callback=self.download,user_data=(user_data[0],user_data[1],user_data[2]))
                 dpg.bind_item_theme(button, self.zender.buttonTheam((78, 93, 108, 255)))
                 dpg.bind_item_font(button,self.zender.fontSetUp)
             self.zender.resize(self.zender.accessFileWindowName,self.groupName,"fileInfo")

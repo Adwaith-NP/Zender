@@ -26,12 +26,7 @@ class YourBox:
         self.zender.resize(self.zender.createBox)
     def moveHistoryBox(self):
         self.zender.fromWhere = self.zender.yourBoxWindow
-        if dpg.does_item_exist(self.zender.historyWindow):
-            dpg.hide_item(self.zender.yourBoxWindow)
-            dpg.show_item(self.zender.historyWindow)
-            self.zender.resize(self.zender.historyWindow)
-        else:
-            self.zender.history.historyManin(zender=self.zender)
+        self.zender.history.historyManin(zender=self.zender)
     def backToHome(self):
         dpg.hide_item(self.zender.yourBoxWindow)
         dpg.show_item(self.zender.homeWindowName)

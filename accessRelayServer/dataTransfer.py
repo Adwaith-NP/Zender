@@ -17,6 +17,7 @@ import jwt
 import datetime
 from pathlib import Path
 from cryptographyFiles.Cryptography import Cryptography
+import time
 
 class jwtAuth:
     def __init__(self,BASE_DIR):
@@ -178,12 +179,16 @@ class sendFile:
                             chunk = f.read(chunk_size)
                             if not chunk:
                                 break
-                            await self.relayConnection.send(chunk)
+                            try:
+                                await asyncio.wait_for(self.relayConnection.send(chunk),timeout=2)
+                            except:
+                                return
                     message = json.dumps({'message' : 'completed'})
                     await self.relayConnection.send(message)
             await self.relayConnection.close()
         else:
             message = json.dumps({'message' : 'invalid_data'})
+            await self.relayConnection.send(message)
         
     def verifyUser(self,info):
         token = info['token']
@@ -453,7 +458,7 @@ class Request:
         
     ## file request
         
-    async def sendFileRequest(self,userId,token,fileId,fileName,password):
+    async def sendFileRequest(self,userId,token,fileId,fileName,password,downloadQ):
         while self.relayConnection is None:
             await asyncio.sleep(0.1)
         if self.relayConnection == 404:
@@ -504,18 +509,32 @@ class Request:
                                 path = os.path.join(downloads_dir,fileName)
                             total_bytes = 0
                             with open(path,'wb') as file:
-                                while True:
+                                time_elapsed = 0
+                                while downloadQ.startDownloading:
                                     try:
+                                        start_time = time.time()
                                         data = await asyncio.wait_for(self.relayConnection.recv(),timeout=5)
+                                        end_time = time.time()
                                     except:
                                         break
-                                    if isinstance(data, str) and data == "END":
-                                        complite = True
-                                        break
+                                    if isinstance(data, str):
+                                        if data == "END":
+                                            complite = True
+                                            downloadQ.completed = True
+                                            break
+                                        elif json.loads(data)['message'] == 'closed':
+                                            print('sender connection lost')
+                                            return
+                                            
                                     file.write(data)
                                     total_bytes += len(data)
                                     downloaded_mb = total_bytes / (1024 * 1024)
-                                    print(f"Downloaded: {downloaded_mb:.2f} MB", end='\r')
+                                    time_elapsed += end_time - start_time
+                                    download_speed = downloaded_mb / time_elapsed 
+                                    downloadQ.speed = download_speed
+                                    downloadQ.totalDownlaod = downloaded_mb
+                                    # print(f"Downloaded: {downloaded_mb:.2f} MB", end='\r')
+                                    # print(f"Download speed: {download_speed:.2f} MB/sec" , end='\r')
                             if complite and enc:
                                 decrypt = Cryptography()
                                 decrypt.decrypt_file(path,fileName,password)
@@ -534,17 +553,17 @@ class Request:
                     
                     
             
-    def sendFileRequestAwaited(self,userId,token,fileId,fileName,password):
-        self.loop.create_task(self.sendFileRequest(userId,token,fileId,fileName,password))
+    def sendFileRequestAwaited(self,userId,token,fileId,fileName,password,downloadQ):
+        self.loop.create_task(self.sendFileRequest(userId,token,fileId,fileName,password,downloadQ))
         
-    def fileRequest(self,userId,token,fileId,fileName,password):
+    def fileRequest(self,userId,token,fileId,fileName,password,downloadQ):
         asyncio.set_event_loop(self.loop)
         self.connectRelay()
-        self.sendFileRequestAwaited(userId,token,fileId,fileName,password)
+        self.sendFileRequestAwaited(userId,token,fileId,fileName,password,downloadQ)
         self.loop.run_forever()
         
-    def fileRequestThread(self,userId,token,fileId,fileName,password):
-        threading.Thread(target=self.fileRequest, daemon=True,args=(userId,token,fileId,fileName,password)).start()
+    def fileRequestThread(self,userId,token,fileId,fileName,password,downloadQ):
+        threading.Thread(target=self.fileRequest, daemon=True,args=(userId,token,fileId,fileName,password,downloadQ)).start()
         
         
         

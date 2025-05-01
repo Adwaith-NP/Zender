@@ -31,7 +31,7 @@ def resizeElement(windowName,self,tagList=[],tag=None,notification=False):
             
     elif windowName == self.historyWindow:
         dpg.set_item_pos("icon_text", [width//2, 40])
-        dpg.set_item_pos("historyChildWindow", [(width / 2) - 230 , (height / 2) - 130])
+        dpg.set_item_pos("historyChildWindow", [(width / 2) - 300 , (height / 2) - 130])
     
     elif windowName == self.yourBoxWindow:
         dpg.set_item_pos("boxChildWindow", [(width / 2) - 230 , (height / 2) - 120])

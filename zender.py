@@ -13,10 +13,25 @@ import json
 import requests
 import random
 import string
+from cryptographyFiles.publicAndPrivatKey import createNewKey
 
+class DownloadInfoThread:
+    def __init__(self,fileName,fileSize):
+        self.fileName = fileName
+        self.fileZise = fileSize
+        self.speed = None
+        self.totalDownlaod = None
+        self.startDownloading = True
+        self.completed = False
 
 class DownloadQueue:
-    pass
+    def __init__(self):
+        self.threaMemory = []
+    def setUpDownloadInfoThread(self,fileName,fileSize):
+        instance = DownloadInfoThread(fileName=fileName,fileSize=fileSize)
+        self.threaMemory.append(instance)
+        return instance
+        
 
 
 class ZenderGui:
@@ -35,6 +50,16 @@ class ZenderGui:
         self.stopSpinning = True
         self.parentWindow = self.homeWindowName
         self.IP = '127.0.0.1'
+        
+        downloadQueue = DownloadQueue()
+        self.downloadQ = downloadQueue
+        
+        self.createNewKey()
+        
+    def createNewKey(self):
+        publicKey = os.path.join(self.BASE_DIR,'accessRelayServer/public_key.pem')
+        privateKey = os.path.join(self.BASE_DIR,'accessRelayServer/private_key.pem')
+        createNewKey(privateKey,publicKey)
     def generate_secret_key(self,length=10):
         characters = string.ascii_letters + string.digits + string.punctuation
         secret_key = ''.join(random.choice(characters) for _ in range(length))
@@ -72,9 +97,9 @@ class ZenderGui:
         request = Request(self.userId,self.BASE_DIR,Queue,self.IP)
         request.loginRequestThread(senderId,boxId,password)
         
-    def fileRequest(self,userId,token,fileId,Queue,fileName,password):
+    def fileRequest(self,userId,token,fileId,Queue,fileName,password,downloadQ):
         request = Request(self.userId,self.BASE_DIR,Queue,self.IP)
-        request.fileRequestThread(userId,token,fileId,fileName,password)
+        request.fileRequestThread(userId,token,fileId,fileName,password,downloadQ)
         
     def noNetwork(self):
         #OnlineOrOffline
@@ -169,12 +194,7 @@ class ZenderGui:
         return black_text_theme
     def moveHistoryBox(self):
         self.fromWhere = self.homeWindowName
-        if dpg.does_item_exist(self.historyWindow):
-            dpg.hide_item(self.homeWindowName)
-            dpg.show_item(self.historyWindow)
-            self.resize(self.historyWindow)
-        else:
-            self.history.historyManin(zender=self)
+        self.history.historyManin(zender=self)
     def moveToBox(self):
         from loginToBox import LoginToBox
         if dpg.does_item_exist(self.loginToBoxWindowName):
@@ -282,7 +302,7 @@ class ZenderGui:
         dpg.show_viewport()
         dpg.start_dearpygui()
         dpg.destroy_context()
+        
 
-if __name__ == "__main__":
-    zender = ZenderGui()
-    zender.run()
+zender = ZenderGui()
+zender.run()

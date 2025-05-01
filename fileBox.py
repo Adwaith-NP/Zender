@@ -64,13 +64,9 @@ class FileBox:
     
     def goToHistory(self):
         if self.childWindowNotShown and self.zender.stopSpinning:
+            dpg.hide_item(self.zender.fileBox)
             self.zender.fromWhere = self.zender.fileBox
-            if dpg.does_item_exist(self.zender.historyWindow):
-                dpg.hide_item(self.zender.fileBox)
-                dpg.show_item(self.zender.historyWindow)
-                self.zender.resize(self.zender.historyWindow)
-            else:
-                self.zender.history.historyManin(zender=self.zender)
+            self.zender.history.historyManin(zender=self.zender)
     
     def removeFile(self,sender, app_data,fileName):
         filePath = os.path.join(self.fileDir,fileName[0])
