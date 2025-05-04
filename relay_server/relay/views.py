@@ -1,15 +1,19 @@
 from django.http import JsonResponse
 import json
+from pathlib import Path
+import os
+BASE_DIR = Path(__file__).resolve().parent
 
 
 def giveUserId(request):
-    with open("relay/topUser.json","r") as file:
+    path = os.path.join(BASE_DIR,"topUser.json")
+    with open(path,"r") as file:
         data = json.load(file)
     print(data)
     newNumber = data['topNumber'] + 1
     data['topNumber'] = newNumber
     
-    with open("relay/topUser.json", "w") as file:
+    with open(path, "w") as file:
         json.dump(data, file)
         
     topUserId = f"user{newNumber}"  # update after assigning
