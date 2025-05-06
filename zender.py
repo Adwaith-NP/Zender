@@ -49,7 +49,7 @@ class ZenderGui:
         self.userId = 'Connect to network and restart'
         self.stopSpinning = True
         self.parentWindow = self.homeWindowName
-        self.IP = 'orange-doodle-r4gv66rwqvjv35jwj-8000.app.github.dev'
+        self.IP = '127.0.0.1:8000'#'orange-doodle-r4gv66rwqvjv35jwj-8000.app.github.dev'
         
         downloadQueue = DownloadQueue()
         self.downloadQ = downloadQueue
@@ -89,7 +89,7 @@ class ZenderGui:
             
             
     def connectToRelayServer(self):
-        url = f"wss://{self.IP}/ws/relay/{self.userId}/"
+        url = f"ws://{self.IP}/ws/relay/{self.userId}/"
         self.connection = RequestHandling(self.userId,url,self.BASE_DIR,self.IP)
         self.connection.startScaningThread()
         
