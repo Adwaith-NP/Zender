@@ -180,7 +180,7 @@ class sendFile:
                             if not chunk:
                                 break
                             try:
-                                await asyncio.wait_for(self.relayConnection.send(chunk),timeout=2)
+                                await asyncio.wait_for(self.relayConnection.send(chunk),timeout=10)
                             except:
                                 return
                     message = json.dumps({'message' : 'completed'})
@@ -513,9 +513,10 @@ class Request:
                                 while downloadQ.startDownloading:
                                     try:
                                         start_time = time.time()
-                                        data = await asyncio.wait_for(self.relayConnection.recv(),timeout=5)
+                                        data = await asyncio.wait_for(self.relayConnection.recv(),timeout=10)
                                         end_time = time.time()
                                     except:
+                                        print('sender connection lost')
                                         break
                                     if isinstance(data, str):
                                         if data == "END":
