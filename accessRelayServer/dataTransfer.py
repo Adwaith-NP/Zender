@@ -173,7 +173,7 @@ class sendFile:
                     
                     message = json.dumps({'message' : 'enc','enc':enc})
                     await self.relayConnection.send(message)
-                    chunk_size = 512 * 1024 
+                    chunk_size = 64 * 1024 
                     with open(filePath, 'rb') as f:
                         while True:
                             chunk = f.read(chunk_size)
