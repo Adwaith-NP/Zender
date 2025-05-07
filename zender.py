@@ -49,7 +49,7 @@ class ZenderGui:
         self.userId = 'Connect to network and restart'
         self.stopSpinning = True
         self.parentWindow = self.homeWindowName
-        self.IP = '192.168.190.49:8080'#'orange-doodle-r4gv66rwqvjv35jwj-8000.app.github.dev'
+        self.IP = '192.168.249.61:8080'#'orange-doodle-r4gv66rwqvjv35jwj-8000.app.github.dev'
         
         downloadQueue = DownloadQueue()
         self.downloadQ = downloadQueue
