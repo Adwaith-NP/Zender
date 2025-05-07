@@ -70,7 +70,7 @@ class ZenderGui:
             jsonData = json.load(file)
         if 'status' in jsonData and not jsonData['status']:
             try:
-                response = requests.get(f'http://{self.IP}/userId/')
+                response = requests.get(f'http://{self.IP}/userId/',timeout=5)
             except:
                 return
             if response:
@@ -85,6 +85,7 @@ class ZenderGui:
                 self.userId = newUser
         else:
             self.userId = jsonData['userId']
+        print(4)
         
             
             
@@ -264,7 +265,7 @@ class ZenderGui:
         self.iconSetUp()
         self.inputDecine()
         self.setUpFont()
-        self.accountSetUp()
+        threading.Thread(target=self.accountSetUp).start()
         self.connectToRelayServer()
         threading.Thread(target=self.noNetwork, daemon=True).start()
         self.button1 = self.buttonTheam((157, 104, 75, 255))
