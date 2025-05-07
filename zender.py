@@ -265,7 +265,7 @@ class ZenderGui:
         self.iconSetUp()
         self.inputDecine()
         self.setUpFont()
-        threading.Thread(target=self.accountSetUp).start()
+        self.accountSetUp()
         self.connectToRelayServer()
         threading.Thread(target=self.noNetwork, daemon=True).start()
         self.button1 = self.buttonTheam((157, 104, 75, 255))

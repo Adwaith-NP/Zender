@@ -83,11 +83,18 @@ DATABASES = {
     }
 }
 
+# settings.py
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 8080)],
+            "capacity": 1000000,             # max messages per channel
+            "expiry": 60,                 # seconds before channel expires
+        },
     },
 }
+
 
 
 

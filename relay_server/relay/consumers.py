@@ -1,6 +1,6 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
-# import asyncio
+import asyncio
 
 active_connections = {}
 request_active_connections = {}
@@ -27,6 +27,7 @@ class filePass(AsyncWebsocketConsumer):
     async def receive(self, text_data=None, bytes_data=None):
         if bytes_data and self.receiver and self.transactionId in activateTransactions:
             await self.receiver.send(bytes_data = bytes_data)
+            await asyncio.sleep(0)
         if text_data:
             data = json.loads(text_data)
             if 'message' in data:

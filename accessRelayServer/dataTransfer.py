@@ -173,7 +173,7 @@ class sendFile:
                     
                     message = json.dumps({'message' : 'enc','enc':enc})
                     await self.relayConnection.send(message)
-                    chunk_size = 64 * 1024 
+                    chunk_size = 16 * 1024 
                     with open(filePath, 'rb') as f:
                         while True:
                             chunk = f.read(chunk_size)
@@ -528,6 +528,7 @@ class Request:
                                             return
                                             
                                     file.write(data)
+                                    file.flush()
                                     total_bytes += len(data)
                                     downloaded_mb = total_bytes / (1024 * 1024)
                                     time_elapsed += end_time - start_time
