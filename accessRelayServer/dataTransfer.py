@@ -537,6 +537,8 @@ class Request:
                                     downloadQ.totalDownlaod = downloaded_mb
                                     # print(f"Downloaded: {downloaded_mb:.2f} MB", end='\r')
                                     # print(f"Download speed: {download_speed:.2f} MB/sec" , end='\r')
+                                else:
+                                    downloadQ.speed = "stoped"
                             if complite and enc:
                                 decrypt = Cryptography()
                                 decrypt.decrypt_file(path,fileName,password)
