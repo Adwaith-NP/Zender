@@ -70,7 +70,7 @@ class ZenderGui:
             jsonData = json.load(file)
         if 'status' in jsonData and not jsonData['status']:
             try:
-                response = requests.get(f'http://{self.IP}/userId/',timeout=5)
+                response = requests.get(f'http://{self.IP}/userId/',timeout=2)
             except:
                 return
             if response:
@@ -303,7 +303,11 @@ class ZenderGui:
         dpg.show_viewport()
         dpg.start_dearpygui()
         dpg.destroy_context()
-        
+
+import sys     
 if __name__ == "__main__":
     zender = ZenderGui()
+    if len(sys.argv) == 2:
+        zender.IP = sys.argv[1]
+    print(zender.IP)
     zender.run()
