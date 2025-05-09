@@ -90,12 +90,5 @@ python zender.py 122.32.44.55:8080
 - **Redis Connection Error**: Verify Redis is installed and running on the relay server
 - **Permission Denied**: Ensure you have proper permissions to read/write files
 
-### Debug Mode
-
-For detailed logs, run the client with the debug flag:
-```
-python zender.py 122.32.44.55:8080 --debug
-```
-
 
 <img width="846" alt="Screenshot 2025-05-08 at 9 03 29 PM" src="https://github.com/user-attachments/assets/00323825-7786-49ce-a810-601d73e3d3d7" />
