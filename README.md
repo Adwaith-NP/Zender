@@ -36,7 +36,7 @@ This project implements a peer-to-peer file sharing system where clients can con
    python server.py runserver (if you want to run in a specific ip add python manage.py runserver <the ip>:<the port number>)
    ```
 
-### Client Setup
+### install all packages
 
 1. Install the required packages from the project root:
    ```
