@@ -12,6 +12,7 @@ This project implements a peer-to-peer file sharing system where clients can con
 1. Navigate to the relay_server directory:
    ```
    cd relay_server
+   python manage.py runserver 0.0.0.0:8000
    ```
 
 ### install all packages
