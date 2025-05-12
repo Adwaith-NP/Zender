@@ -13,28 +13,6 @@ This project implements a peer-to-peer file sharing system where clients can con
    ```
    cd relay_server
    ```
-   
-2 To install and run Redis:
-   ```
-   **MAC OS**
-   brew install redis
-   brew services start redis
-
-   **Linux**
-   sudo apt update
-   sudo apt install redis-server
-   sudo systemctl enable redis
-   sudo systemctl start redis
-
-   **Wondows**
-   Install WSL.
-   Open Ubuntu in WSL and run the same Linux steps above.
-   ```
-
-3 Start the relay server:
-   ```
-   python server.py runserver (if you want to run in a specific ip add python manage.py runserver <the ip>:<the port number>)
-   ```
 
 ### install all packages
 
