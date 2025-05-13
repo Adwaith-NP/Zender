@@ -30,4 +30,4 @@ typing_extensions==4.13.2
 urllib3==2.3.0
 websockets==15.0.1
 zope.interface==7.2
-channels_rabbitmq
+channels==4.2.2
