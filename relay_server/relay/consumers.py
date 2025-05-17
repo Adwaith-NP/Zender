@@ -6,12 +6,14 @@ active_connections = {}
 request_active_connections = {}
 filePass_active_connection = {} # reciverId : {fileId1 : self,fileId2 : self}
 activateTransactions = []
+sender_connection = {}
 
 class filePass(AsyncWebsocketConsumer):
     async def connect(self):
         self.receiver = None
         self.userId = self.scope["url_route"]["kwargs"]['userId']
         self.transactionId = self.scope["url_route"]["kwargs"]['transactionId']
+        sender_connection[self.transactionId] = self
         
         if self.userId and self.transactionId:
             await self.accept()
@@ -28,7 +30,6 @@ class filePass(AsyncWebsocketConsumer):
     async def receive(self, text_data=None, bytes_data=None):
         if bytes_data and self.receiver and self.transactionId in activateTransactions:
             await self.receiver.send(bytes_data = bytes_data)
-            await self.send(text_data='200')
         if text_data:
             data = json.loads(text_data)
             if 'message' in data:
@@ -38,6 +39,7 @@ class filePass(AsyncWebsocketConsumer):
                 elif data['message'] == 'enc':
                     await self.receiver.send(text_data)
     async def disconnect(self, close_code):
+        del sender_connection[self.transactionId]
         if self.receiver:
             await self.receiver.send(json.dumps({'message' : 'closed'}))
             if self.transactionId in activateTransactions:
@@ -88,59 +90,64 @@ class OneTimeRequest(AsyncWebsocketConsumer):
         return number
     
     async def connect(self):
+        self.transactionId = None
         self.userId = self.scope["url_route"]["kwargs"]['userId']
         await self.accept()
         
     async def receive(self, text_data=None, bytes_data=None):
         if text_data:
-            jsonData = json.loads(text_data)
-            request = None
-            if 'request' in jsonData:
-                if jsonData['request'] == 'givePublicKey':
-                    senderUserId = jsonData['userId']
-                    request = json.dumps({
-                        'request':'givePublicKey',
-                        'reciverId' : self.userId,
-                    })
-                elif jsonData['request'] == 'authentication':
-                    senderUserId = jsonData['userId']
-                    request = json.dumps({
-                        'request':'authentication',
-                        'data' : jsonData['data'],
-                        'reciverId' : self.userId,
-                    })
-                if senderUserId in active_connections and request:
-                        request_active_connections[self.userId] = self
-                        await active_connections[senderUserId].send(request)
-                else:
-                    message = json.dumps({'status':404})
-                    await self.send(message)
-            elif 'fileRequest' in jsonData:
-                if jsonData['fileRequest'] == 'giveFile':
-                    fileSenderId = jsonData['fileSenderId']
-                    clientInfo = jsonData['clientInfo']
-                    transactionId = self.createTransactionId()
-                    
-                    jsonRequest = json.dumps(
-                        {
-                            'request' : 'giveFile',
-                            'clientInfo' : clientInfo,
-                            'transactionId' : transactionId,
+            if text_data == 'ack' and self.transactionId and self.transactionId in sender_connection:
+                await sender_connection[self.transactionId].send('ask')
+            else:
+                jsonData = json.loads(text_data)
+                request = None
+                if 'request' in jsonData:
+                    if jsonData['request'] == 'givePublicKey':
+                        senderUserId = jsonData['userId']
+                        request = json.dumps({
+                            'request':'givePublicKey',
                             'reciverId' : self.userId,
-                        }
-                    )
-                    if fileSenderId in active_connections:
-                        activateTransactions.append(transactionId)
-                        if self.userId not in filePass_active_connection:
-                            filePass_active_connection[self.userId] = {}
-                        filePass_active_connection[self.userId][transactionId] = self
-                        
-                        await active_connections[fileSenderId].send(jsonRequest)
-                        message = json.dumps({'status':200})
-                        await self.send(message)
+                        })
+                    elif jsonData['request'] == 'authentication':
+                        senderUserId = jsonData['userId']
+                        request = json.dumps({
+                            'request':'authentication',
+                            'data' : jsonData['data'],
+                            'reciverId' : self.userId,
+                        })
+                    if senderUserId in active_connections and request:
+                            request_active_connections[self.userId] = self
+                            await active_connections[senderUserId].send(request)
                     else:
                         message = json.dumps({'status':404})
                         await self.send(message)
+                elif 'fileRequest' in jsonData:
+                    if jsonData['fileRequest'] == 'giveFile':
+                        fileSenderId = jsonData['fileSenderId']
+                        clientInfo = jsonData['clientInfo']
+                        transactionId = self.createTransactionId()
+                        
+                        jsonRequest = json.dumps(
+                            {
+                                'request' : 'giveFile',
+                                'clientInfo' : clientInfo,
+                                'transactionId' : transactionId,
+                                'reciverId' : self.userId,
+                            }
+                        )
+                        if fileSenderId in active_connections:
+                            activateTransactions.append(transactionId)
+                            if self.userId not in filePass_active_connection:
+                                filePass_active_connection[self.userId] = {}
+                            filePass_active_connection[self.userId][transactionId] = self
+                            self.transactionId = transactionId
+                            
+                            await active_connections[fileSenderId].send(jsonRequest)
+                            message = json.dumps({'status':200})
+                            await self.send(message)
+                        else:
+                            message = json.dumps({'status':404})
+                            await self.send(message)
                     
     
     async def disconnect(self, close_code):

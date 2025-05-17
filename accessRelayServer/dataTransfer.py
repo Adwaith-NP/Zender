@@ -515,6 +515,7 @@ class Request:
                                     try:
                                         start_time = time.time()
                                         data = await asyncio.wait_for(self.relayConnection.recv(),timeout=10)
+                                        await asyncio.wait_for(self.relayConnection.send('ack'),timeout=10)
                                         end_time = time.time()
                                     except:
                                         print('sender connection lost')
