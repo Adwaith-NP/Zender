@@ -66,7 +66,6 @@ python zender.py 122.32.44.55:8080
 ### Common Issues
 
 - **Connection Refused**: Make sure the relay server is running and the IP:Port is correct
-- **Redis Connection Error**: Verify Redis is installed and running on the relay server
 - **Permission Denied**: Ensure you have proper permissions to read/write files
 
 
