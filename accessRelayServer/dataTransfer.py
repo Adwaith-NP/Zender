@@ -173,7 +173,7 @@ class sendFile:
                     
                     message = json.dumps({'message' : 'enc','enc':enc})
                     await self.relayConnection.send(message)
-                    chunk_size = 16 * 1024 
+                    chunk_size = 512 * 1024 
                     with open(filePath, 'rb') as f:
                         while True:
                             chunk = f.read(chunk_size)
@@ -181,6 +181,7 @@ class sendFile:
                                 break
                             try:
                                 await asyncio.wait_for(self.relayConnection.send(chunk),timeout=10)
+                                await asyncio.wait_for(self.relayConnection.recv(),timeout=10)
                             except:
                                 return
                     message = json.dumps({'message' : 'completed'})

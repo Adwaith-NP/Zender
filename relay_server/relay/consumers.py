@@ -12,6 +12,7 @@ class filePass(AsyncWebsocketConsumer):
         self.receiver = None
         self.userId = self.scope["url_route"]["kwargs"]['userId']
         self.transactionId = self.scope["url_route"]["kwargs"]['transactionId']
+        
         if self.userId and self.transactionId:
             await self.accept()
             if self.userId in filePass_active_connection:
@@ -27,7 +28,7 @@ class filePass(AsyncWebsocketConsumer):
     async def receive(self, text_data=None, bytes_data=None):
         if bytes_data and self.receiver and self.transactionId in activateTransactions:
             await self.receiver.send(bytes_data = bytes_data)
-            await asyncio.sleep(0)
+            await self.send(text_data='200')
         if text_data:
             data = json.loads(text_data)
             if 'message' in data:
