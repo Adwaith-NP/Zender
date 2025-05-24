@@ -99,7 +99,10 @@ class OneTimeRequest(AsyncWebsocketConsumer):
             if text_data == 'ack' and self.transactionId and self.transactionId in sender_connection:
                 await sender_connection[self.transactionId].send('ask')
             else:
-                jsonData = json.loads(text_data)
+                try:
+                    jsonData = json.loads(text_data)
+                except:
+                    return
                 request = None
                 if 'request' in jsonData:
                     if jsonData['request'] == 'givePublicKey':
