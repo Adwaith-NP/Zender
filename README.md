@@ -1,10 +1,10 @@
 # P2P File Sharing with Relay Server
 
-A peer-to-peer file sharing application that enables direct file transfers between peers using a relay server for connection establishment.
+A file sharing application that enables direct file transfers between peers using a relay serve.
 
 ## Overview
 
-This project implements a peer-to-peer file sharing system where clients can connect to each other through a relay server. The relay server facilitates the initial connection between peers using Redis channels, after which peers can transfer files directly.
+This project implements a file sharing system where clients can connect to each other through a relay server. The relay server facilitates the initial connection between peers using Redis channels, after which peers can transfer files using relay.
 
 
 ### Relay Server Setup
